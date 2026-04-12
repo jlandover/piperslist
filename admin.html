@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PipersList Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  body { background: #f4f1ea; color: #1F2421; padding: 20px; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { color: #2D4A3E; font-size: 28px; margin-bottom: 8px; }
+  .sub { color: #6B7270; margin-bottom: 24px; font-size: 14px; }
+  .card { background: white; border: 1px solid #E4DFD2; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  h2 { font-size: 18px; color: #2D4A3E; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px; border-bottom: 1px solid #E4DFD2; }
+  th { font-weight: 600; color: #6B7270; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+  .b-pending { background: #FAEEDA; color: #633806; }
+  .b-approved { background: #E1F5EE; color: #085041; }
+  button { background: #2D4A3E; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 4px; font-family: inherit; }
+  button:hover { background: #1E3429; }
+  .b-danger { background: #B33A3A; }
+  .b-danger:hover { background: #8a2828; }
+  .empty { text-align: center; color: #6B7270; padding: 30px; font-size: 14px; }
+  .auth { background: white; max-width: 400px; margin: 80px auto; padding: 30px; border-radius: 12px; border: 1px solid #E4DFD2; text-align: center; }
+  .auth input { width: 100%; padding: 10px 14px; border: 1px solid #E4DFD2; border-radius: 8px; font-size: 14px; margin: 12px 0; font-family: inherit; }
+  .auth button { background: #2D4A3E; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; width: 100%; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div id="auth-screen" class="auth">
+  <h1>Admin login</h1>
+  <p class="sub">Enter your admin email — we'll send you a magic link.</p>
+  <input type="email" id="login-email" placeholder="your@email.com">
+  <button onclick="sendMagicLink()">Send magic link</button>
+  <p id="auth-status" style="margin-top:14px; font-size:13px; color:#6B7270;"></p>
+</div>
+
+<div id="admin-screen" class="container hidden">
+  <h1>PipersList Admin</h1>
+  <p class="sub">Manage helpers and view incoming requests.</p>
+
+  <div class="card">
+    <h2>⏳ Pending approval</h2>
+    <table id="pending-table">
+      <thead><tr><th>Name</th><th>Age</th><th>Services</th><th>Rate</th><th>Parent email</th><th>Actions</th></tr></thead>
+      <tbody id="pending-body"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>✓ Approved helpers</h2>
+    <table id="approved-table">
+      <thead><tr><th>Name</th><th>Age</th><th>Services</th><th>Rate</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="approved-body"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>📨 Recent requests</h2>
+    <table id="requests-table">
+      <thead><tr><th>When sent</th><th>Helper ID</th><th>What</th><th>When</th><th>Pay</th><th>Neighbor</th><th>Phone</th></tr></thead>
+      <tbody id="requests-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://brezapyroueqvznuiatb.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_5vwIdN4tIa-MwxUFM4xTog_1ka8Y27X';
+  // ⚠️ CHANGE THIS to your real email — only this email can access admin
+  const ADMIN_EMAIL = 'YOUR_EMAIL_HERE@example.com';
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  async function checkAuth() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session && session.user.email === ADMIN_EMAIL) {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('admin-screen').classList.remove('hidden');
+      loadAll();
+    }
+  }
+
+  async function sendMagicLink() {
+    const email = document.getElementById('login-email').value;
+    if (email !== ADMIN_EMAIL) {
+      document.getElementById('auth-status').textContent = 'That email is not the admin email.';
+      return;
+    }
+    const { error } = await sb.auth.signInWithOtp({ email });
+    if (error) {
+      document.getElementById('auth-status').textContent = 'Error: ' + error.message;
+    } else {
+      document.getElementById('auth-status').textContent = '✓ Check your email for the magic link!';
+    }
+  }
+
+  async function loadAll() {
+    // Pending
+    const { data: pending } = await sb.from('helpers').select('*').eq('approved', false).order('created_at', { ascending: false });
+    document.getElementById('pending-body').innerHTML = !pending || pending.length === 0
+      ? '<tr><td colspan="6" class="empty">No pending helpers.</td></tr>'
+      : pending.map(h => `<tr>
+          <td>${h.first_name}</td><td>${h.age}</td>
+          <td>${h.services.join(', ')}${h.other_service ? ', ' + h.other_service : ''}</td>
+          <td>${h.rate}</td><td>${h.parent_email}</td>
+          <td><button onclick="approve('${h.id}')">Approve</button><button class="b-danger" onclick="del('${h.id}')">Delete</button></td>
+        </tr>`).join('');
+
+    // Approved
+    const { data: approved } = await sb.from('helpers').select('*').eq('approved', true).order('created_at', { ascending: false });
+    document.getElementById('approved-body').innerHTML = !approved || approved.length === 0
+      ? '<tr><td colspan="6" class="empty">No approved helpers yet.</td></tr>'
+      : approved.map(h => `<tr>
+          <td>${h.first_name}</td><td>${h.age}</td>
+          <td>${h.services.join(', ')}${h.other_service ? ', ' + h.other_service : ''}</td>
+          <td>${h.rate}</td>
+          <td><span class="badge b-approved">Live</span></td>
+          <td><button class="b-danger" onclick="del('${h.id}')">Delete</button></td>
+        </tr>`).join('');
+
+    // Requests
+    const { data: reqs } = await sb.from('requests').select('*').order('created_at', { ascending: false }).limit(50);
+    document.getElementById('requests-body').innerHTML = !reqs || reqs.length === 0
+      ? '<tr><td colspan="7" class="empty">No requests yet.</td></tr>'
+      : reqs.map(r => `<tr>
+          <td>${new Date(r.created_at).toLocaleString()}</td>
+          <td style="font-size:11px;color:#888">${r.helper_id ? r.helper_id.slice(0,8) : '—'}</td>
+          <td>${r.what}</td><td>${r.when_text}</td><td>${r.pay}</td>
+          <td>${r.neighbor_name}</td><td>${r.neighbor_phone}</td>
+        </tr>`).join('');
+  }
+
+  async function approve(id) {
+    await sb.from('helpers').update({ approved: true }).eq('id', id);
+    loadAll();
+  }
+  async function del(id) {
+    if (!confirm('Delete this helper?')) return;
+    await sb.from('helpers').delete().eq('id', id);
+    loadAll();
+  }
+
+  checkAuth();
+</script>
+</body>
+</html>
