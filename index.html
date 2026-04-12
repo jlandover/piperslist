@@ -281,7 +281,7 @@
     renderGrid(cat);
   }
 
-  // ===== Signup =====
+  // ===== Signup (no auth, instant approval) =====
   async function submitJoin(e) {
     e.preventDefault();
     const f = e.target;
@@ -293,21 +293,20 @@
     if (ins[5].checked) services.push('Tutoring');
     const otherChk = ins[6];
     const otherTxt = ins[7] ? ins[7].value : '';
-    const rate = ins[8].value;
-    const parentEmail = ins[9].value;
     if (!services.length && !(otherChk.checked && otherTxt)) { alert('Pick at least one service'); return; }
-    const { error: aErr } = await sb.auth.signInWithOtp({ email: parentEmail });
-    if (aErr) { alert('Auth error: ' + aErr.message); return; }
     const { error: iErr } = await sb.from('helpers').insert({
       first_name: ins[0].value, age: parseInt(ins[1].value), services,
-      other_service: otherChk.checked ? otherTxt : null, rate, parent_email: parentEmail, approved: false
+      other_service: otherChk.checked ? otherTxt : null,
+      rate: ins[8].value, parent_email: ins[9].value, approved: true
     });
     if (iErr) { alert('Save error: ' + iErr.message); return; }
     const s = document.getElementById('join-success');
     s.style.display = 'block';
-    s.innerHTML = '✓ Sent! A confirmation link was emailed to your parent. Once they confirm AND we review, you\'ll appear on the site.';
+    s.innerHTML = '✓ You\'re listed! Refresh the page and you\'ll see yourself on the Find Help page.';
     f.querySelector('button').style.display = 'none';
+    loadHelpers();
   }
+
 
   // ===== Request modal =====
   let currentHelperId = null;
