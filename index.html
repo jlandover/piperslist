@@ -238,111 +238,109 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // ⚠️ PASTE YOUR SUPABASE URL AND KEY HERE
+  // ===== Supabase setup =====
   const SUPABASE_URL = 'https://brezapyroueqvznuiatb.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_5vwIdN4tIa-MwxUFM4xTog_1ka8Y27X';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // ===== LOAD HELPERS FROM DATABASE =====
+  // ===== Page navigation (preserved from original) =====
+  function go(id, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    else { const navBtn = document.querySelector(`nav button[onclick*="${id}"]`); if (navBtn) navBtn.classList.add('active'); }
+    window.scrollTo(0, 0);
+  }
+
+  // ===== Helpers from database =====
+  let _helpers = [];
   async function loadHelpers() {
     const { data, error } = await sb.from('helpers').select('*').eq('approved', true).order('created_at', { ascending: false });
     if (error) { console.error(error); return; }
-    if (!data || data.length === 0) {
-      document.getElementById('grid').innerHTML = '<p style="text-align:center;color:#666;padding:40px;">No helpers yet — be the first! Click "Offer help" above.</p>';
-      return;
-    }
-    window._helpers = data;
-    renderFromDB();
+    _helpers = data || [];
+    renderGrid();
   }
-
-  function renderFromDB(filter) {
-    const list = (!filter || filter === 'All') ? window._helpers : window._helpers.filter(h => h.services.includes(filter));
-    document.getElementById('grid').innerHTML = list.map(h => {
+  function renderGrid(filter) {
+    const list = (!filter || filter === 'All') ? _helpers : _helpers.filter(h => h.services.includes(filter));
+    const grid = document.getElementById('grid');
+    if (!list.length) { grid.innerHTML = '<p style="text-align:center;color:#666;padding:40px;grid-column:1/-1;">No helpers yet — be the first! Click "Offer help" above.</p>'; return; }
+    grid.innerHTML = list.map(h => {
       const initials = h.first_name.split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2);
       const svcText = h.services.join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
-      return `
-        <div class="helper">
-          <div class="helper-top">
-            <div class="avatar">${initials}</div>
-            <div>
-              <div class="name">${h.first_name}, ${h.age}</div>
-              <div class="meta">★ New helper</div>
-            </div>
-          </div>
-          <div class="svc">${svcText}</div>
-          <div class="price">${h.rate}</div>
-          <div class="verified">✓ Verified</div>
-          <button onclick="openModal('${h.first_name}','${svcText}','${h.rate}','${initials}','${h.id}')">Request ${h.first_name}</button>
-        </div>`;
+      return `<div class="helper">
+        <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${h.first_name}, ${h.age}</div><div class="meta">★ New helper</div></div></div>
+        <div class="svc">${svcText}</div><div class="price">${h.rate}</div><div class="verified">✓ Verified</div>
+        <button onclick="openModal('${h.first_name}','${svcText.replace(/'/g,"\\'")}','${h.rate}','${initials}','${h.id}')">Request ${h.first_name}</button>
+      </div>`;
     }).join('');
   }
-
-  // Override filter to use DB version
-  window.filt = function(cat, el) {
+  function filt(cat, el) {
     document.querySelectorAll('.cat').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
-    renderFromDB(cat);
-  };
+    renderGrid(cat);
+  }
 
-  // ===== SIGNUP HELPER (uses magic link auth) =====
-  window.submitJoin = async function(e) {
+  // ===== Signup =====
+  async function submitJoin(e) {
     e.preventDefault();
-    const form = e.target;
-    const inputs = form.querySelectorAll('input, select, textarea');
-    const firstName = inputs[0].value;
-    const age = parseInt(inputs[1].value);
+    const f = e.target;
+    const ins = f.querySelectorAll('input, select, textarea');
     const services = [];
-    if (inputs[2].checked) services.push('Babysitting');
-    if (inputs[3].checked) services.push('Dog walking');
-    if (inputs[4].checked) services.push('Yard help');
-    if (inputs[5].checked) services.push('Tutoring');
-    const otherCheck = inputs[6];
-    const otherText = inputs[7] ? inputs[7].value : '';
-    const rate = inputs[8].value;
-    const parentEmail = inputs[9].value;
-
-    if (services.length === 0 && !(otherCheck.checked && otherText)) {
-      alert('Please pick at least one service'); return;
-    }
-
-    // Magic link signup using parent email
-    const { data: authData, error: authErr } = await sb.auth.signInWithOtp({ email: parentEmail });
-    if (authErr) { alert('Error: ' + authErr.message); return; }
-
-    // Insert helper row (unapproved by default)
-    const { error: insertErr } = await sb.from('helpers').insert({
-      first_name: firstName, age, services, other_service: otherCheck.checked ? otherText : null,
-      rate, parent_email: parentEmail, approved: false
+    if (ins[2].checked) services.push('Babysitting');
+    if (ins[3].checked) services.push('Dog walking');
+    if (ins[4].checked) services.push('Yard help');
+    if (ins[5].checked) services.push('Tutoring');
+    const otherChk = ins[6];
+    const otherTxt = ins[7] ? ins[7].value : '';
+    const rate = ins[8].value;
+    const parentEmail = ins[9].value;
+    if (!services.length && !(otherChk.checked && otherTxt)) { alert('Pick at least one service'); return; }
+    const { error: aErr } = await sb.auth.signInWithOtp({ email: parentEmail });
+    if (aErr) { alert('Auth error: ' + aErr.message); return; }
+    const { error: iErr } = await sb.from('helpers').insert({
+      first_name: ins[0].value, age: parseInt(ins[1].value), services,
+      other_service: otherChk.checked ? otherTxt : null, rate, parent_email: parentEmail, approved: false
     });
-    if (insertErr) { alert('Error saving: ' + insertErr.message); return; }
+    if (iErr) { alert('Save error: ' + iErr.message); return; }
+    const s = document.getElementById('join-success');
+    s.style.display = 'block';
+    s.innerHTML = '✓ Sent! A confirmation link was emailed to your parent. Once they confirm AND we review, you\'ll appear on the site.';
+    f.querySelector('button').style.display = 'none';
+  }
 
-    document.getElementById('join-success').style.display = 'block';
-    document.getElementById('join-success').innerHTML = '✓ Sent! A confirmation link was emailed to your parent. Once they confirm AND we review your profile, you\'ll appear on the site.';
-    form.querySelector('button').style.display = 'none';
-  };
-
-  // ===== REQUEST FORM =====
+  // ===== Request modal =====
   let currentHelperId = null;
-  const origOpenModal = window.openModal;
-  window.openModal = function(name, svc, price, initials, helperId) {
-    currentHelperId = helperId;
-    origOpenModal(name, svc, price, initials);
-  };
-
-  window.submitRequest = async function(e) {
+  function openModal(name, svc, price, initials, helperId) {
+    currentHelperId = helperId || null;
+    document.getElementById('m-name').textContent = 'Request ' + name.split(' ')[0];
+    document.getElementById('m-meta').textContent = svc + ' · ' + price;
+    document.getElementById('m-avatar').textContent = initials;
+    document.getElementById('s-name').textContent = name.split(' ')[0];
+    document.getElementById('req-form').reset();
+    document.getElementById('req-success').style.display = 'none';
+    const btn = document.getElementById('req-form').querySelector('button');
+    if (btn) btn.style.display = '';
+    document.getElementById('modal-bg').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    document.getElementById('modal-bg').classList.remove('show');
+    document.body.style.overflow = '';
+  }
+  async function submitRequest(e) {
     e.preventDefault();
-    const form = e.target;
-    const inputs = form.querySelectorAll('input');
+    const f = e.target;
+    const ins = f.querySelectorAll('input');
     const { error } = await sb.from('requests').insert({
-      helper_id: currentHelperId, what: inputs[0].value, when_text: inputs[1].value,
-      pay: inputs[2].value, neighbor_name: inputs[3].value, neighbor_phone: inputs[4].value
+      helper_id: currentHelperId, what: ins[0].value, when_text: ins[1].value,
+      pay: ins[2].value, neighbor_name: ins[3].value, neighbor_phone: ins[4].value
     });
     if (error) { alert('Error: ' + error.message); return; }
     document.getElementById('req-success').style.display = 'block';
-    form.querySelector('button').style.display = 'none';
-  };
+    f.querySelector('button').style.display = 'none';
+  }
 
   loadHelpers();
-</script>
-</body>
+</script></body>
 </html>
