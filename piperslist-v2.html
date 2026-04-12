@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PipersList — Hire trusted neighborhood teens</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --forest: #2D4A3E;
+    --forest-dark: #1E3429;
+    --cream: #F7F3EA;
+    --warm: #D4A574;
+    --ink: #1F2421;
+    --muted: #6B7270;
+    --line: #E4DFD2;
+    --ok: #4A7C59;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif; background: var(--cream); color: var(--ink); line-height: 1.55; }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  header { background: white; border-bottom: 1px solid var(--line); padding: 18px 0; position: sticky; top: 0; z-index: 10; }
+  header .container { display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-size: 22px; font-weight: 700; color: var(--forest); cursor: pointer; letter-spacing: -0.3px; }
+  .logo-dot { color: var(--warm); }
+  nav { display: flex; gap: 4px; }
+  nav button { background: none; color: var(--muted); border: none; padding: 8px 14px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  nav button:hover { color: var(--forest); }
+  nav button.active { color: var(--forest); background: var(--cream); font-weight: 600; }
+
+  .page { display: none; padding: 48px 0 80px; }
+  .page.active { display: block; }
+
+  .hero { text-align: center; padding: 20px 20px 40px; }
+  .hero h1 { font-size: 44px; color: var(--forest); line-height: 1.1; letter-spacing: -1px; margin-bottom: 14px; font-weight: 700; }
+  .hero p { font-size: 18px; color: var(--muted); max-width: 520px; margin: 0 auto 32px; }
+  .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn { border: none; padding: 14px 28px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .btn-primary { background: var(--forest); color: white; }
+  .btn-primary:hover { background: var(--forest-dark); }
+  .btn-secondary { background: white; color: var(--forest); border: 1.5px solid var(--line); }
+  .btn-secondary:hover { border-color: var(--forest); }
+
+  .trust-row { display: flex; justify-content: center; gap: 32px; margin-top: 40px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+  .trust-row span { display: flex; align-items: center; gap: 6px; }
+  .trust-row .check { color: var(--ok); font-weight: 700; }
+
+  h2.section { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; text-align: center; margin-bottom: 24px; font-weight: 600; }
+
+  .cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+  .cat { background: white; border: 1px solid var(--line); padding: 20px 14px; border-radius: 10px; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .cat:hover, .cat.active { border-color: var(--forest); background: white; transform: translateY(-2px); }
+  .cat.active { background: var(--forest); color: white; }
+  .cat .emoji { font-size: 26px; display: block; margin-bottom: 6px; }
+  .cat .name { font-size: 13px; font-weight: 600; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 20px; }
+  .helper { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 18px; transition: all 0.15s; }
+  .helper:hover { border-color: var(--forest); }
+  .helper-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--forest); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0; }
+  .helper .name { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .helper .meta { font-size: 13px; color: var(--muted); }
+  .helper .svc { font-size: 13px; color: var(--forest); margin: 8px 0 4px; font-weight: 500; }
+  .helper .price { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+  .helper .verified { font-size: 12px; color: var(--ok); font-weight: 600; margin-bottom: 12px; }
+  .helper button { width: 100%; background: var(--forest); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; font-family: inherit; }
+  .helper button:hover { background: var(--forest-dark); }
+
+  .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 28px; }
+  .step { text-align: center; padding: 24px 16px; }
+  .step .num { width: 40px; height: 40px; background: var(--forest); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto 14px; font-size: 16px; }
+  .step h3 { font-size: 16px; margin-bottom: 6px; color: var(--ink); }
+  .step p { font-size: 14px; color: var(--muted); }
+
+  form { max-width: 520px; margin: 0 auto; background: white; padding: 32px; border-radius: 12px; border: 1px solid var(--line); }
+  form label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--ink); }
+  form input, form select, form textarea { width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--cream); }
+  form input:focus, form select:focus, form textarea:focus { outline: none; border-color: var(--forest); background: white; }
+  form textarea { min-height: 90px; resize: vertical; }
+  .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+  .checks label { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 400; font-size: 14px; cursor: pointer; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--cream); }
+  .checks label:hover { border-color: var(--forest); }
+  .checks input { width: auto; }
+  .success { background: #E8F0EA; color: var(--ok); padding: 14px; border-radius: 8px; margin-top: 16px; text-align: center; font-size: 14px; font-weight: 600; }
+
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(30,52,41,0.5); z-index: 100; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 20px; }
+  .modal-bg.show { display: flex; }
+  .modal { background: white; border-radius: 14px; max-width: 500px; width: 100%; padding: 28px; position: relative; margin: 20px auto; }
+  .modal-close { position: absolute; top: 10px; right: 14px; background: none; border: none; font-size: 28px; color: var(--muted); cursor: pointer; line-height: 1; }
+  .modal-head { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .modal-head .avatar { width: 48px; height: 48px; }
+  .modal-head h2 { font-size: 18px; color: var(--ink); margin: 0; }
+  .modal-head p { font-size: 13px; color: var(--muted); margin: 2px 0 0; }
+  .optional-tag { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .helper-note { background: var(--cream); padding: 10px 12px; border-radius: 6px; font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.5; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  footer { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 32px; }
+    .cats { grid-template-columns: repeat(2, 1fr); }
+    .how { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="logo" onclick="go('home')">Piperslist<span class="logo-dot">.</span></div>
+    <nav>
+      <button onclick="go('home', this)" class="active">Home</button>
+      <button onclick="go('browse', this)">Find help</button>
+      <button onclick="go('signup', this)">Offer help</button>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+
+  <section id="home" class="page active">
+    <div class="hero">
+      <h1>Trusted neighborhood teens,<br>ready to help.</h1>
+      <p>Find local kids for babysitting, dog walking, yard work, and tutoring — all parent-approved, all right here in your neighborhood.</p>
+      <div class="cta-row">
+        <button class="btn btn-primary" onclick="go('browse')">Find a helper</button>
+        <button class="btn btn-secondary" onclick="go('signup')">I'm a teen — list me</button>
+      </div>
+      <div class="trust-row">
+        <span><span class="check">✓</span> Parent approved</span>
+        <span><span class="check">✓</span> Local to your block</span>
+        <span><span class="check">✓</span> No fees, no middleman</span>
+      </div>
+    </div>
+
+    <h2 class="section">How it works</h2>
+    <div class="how">
+      <div class="step"><div class="num">1</div><h3>Browse</h3><p>See local teens and what they offer.</p></div>
+      <div class="step"><div class="num">2</div><h3>Request</h3><p>Pick one, send a quick request.</p></div>
+      <div class="step"><div class="num">3</div><h3>Done</h3><p>They show up. You pay them directly.</p></div>
+    </div>
+  </section>
+
+  <section id="browse" class="page">
+    <div class="hero" style="padding-bottom: 20px;">
+      <h1 style="font-size: 32px;">Find a helper</h1>
+      <p>Tap a category to filter.</p>
+    </div>
+    <div class="cats">
+      <div class="cat active" onclick="filt('All', this)"><span class="emoji">🏡</span><div class="name">All</div></div>
+      <div class="cat" onclick="filt('Babysitting', this)"><span class="emoji">👶</span><div class="name">Sitting</div></div>
+      <div class="cat" onclick="filt('Dog walking', this)"><span class="emoji">🐕</span><div class="name">Dog walks</div></div>
+      <div class="cat" onclick="filt('Yard help', this)"><span class="emoji">🌱</span><div class="name">Yard</div></div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="signup" class="page">
+    <div class="hero" style="padding-bottom: 20px;">
+      <h1 style="font-size: 32px;">Offer your services</h1>
+      <p>Takes 2 minutes. A parent will confirm before you're listed.</p>
+    </div>
+    <form onsubmit="submitJoin(event)">
+      <label>First name</label>
+      <input required placeholder="Ella">
+      <label>Age</label>
+      <input type="number" required min="12" max="18" placeholder="14">
+      <label>What you offer</label>
+      <div class="checks">
+        <label><input type="checkbox"> Babysitting</label>
+        <label><input type="checkbox"> Dog walking</label>
+        <label><input type="checkbox"> Yard help</label>
+        <label><input type="checkbox"> Tutoring</label>
+        <label><input type="checkbox" id="other-check" onchange="document.getElementById('other-box').style.display = this.checked ? 'block' : 'none'"> Something else</label>
+      </div>
+      <div id="other-box" style="display:none; margin-top:10px;">
+        <input placeholder="e.g. swim lessons, raking leaves, baking cookies, piano, car washing...">
+        <div class="helper-note">Tell neighbors what you can do! The more specific, the better.</div>
+      </div>
+      <label>Your rate</label>
+      <input required placeholder="$12 per walk, $14/hr sitting">
+      <label>Parent's email</label>
+      <input type="email" required placeholder="parent@email.com">
+      <button class="btn btn-primary" style="width:100%; margin-top:20px;">Send for parent approval</button>
+      <div id="join-success" style="display:none;" class="success">✓ Sent. Your parent will get an email to approve.</div>
+    </form>
+  </section>
+
+</main>
+
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-head">
+      <div class="avatar" id="m-avatar">P</div>
+      <div>
+        <h2 id="m-name">Request Piper</h2>
+        <p id="m-meta">Dog walking · $12/walk</p>
+      </div>
+    </div>
+    <form onsubmit="submitRequest(event)" id="req-form">
+      <label>What do you need?</label>
+      <input required placeholder="e.g. Walk my golden retriever for 30 min">
+
+      <div class="two-col">
+        <div>
+          <label>When?</label>
+          <input required placeholder="Tue 4pm">
+        </div>
+        <div>
+          <label>Pay</label>
+          <input required placeholder="$15">
+        </div>
+      </div>
+
+      <label>Your first name</label>
+      <input required placeholder="Mrs. Patel">
+
+      <label>Your phone</label>
+      <input type="tel" required placeholder="(913) 555-0123">
+
+      <div class="helper-note">
+        Piper's parent will be notified of the request. If she says yes, she'll text you to work out the details.
+      </div>
+
+      <button class="btn btn-primary" style="width:100%; margin-top:20px;">Send request</button>
+      <div id="req-success" style="display:none;" class="success">
+        ✓ Request sent! <span id="s-name">Piper</span> will text you back soon.<br>
+        <span style="font-weight: 400; font-size: 13px;">Her parent has been notified too.</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<footer>Piperslist · Built by a neighborhood kid · Always parent-approved</footer>
+
+<script>
+  const helpers = [
+    { name: "Ella M.", age: 14, svc: "Babysitting", price: "$14/hr", rating: "4.9", reviews: 12, initials: "EM" },
+    { name: "Jordan T.", age: 16, svc: "Babysitting", price: "$15/hr", rating: "5.0", reviews: 23, initials: "JT" },
+    { name: "Marcus L.", age: 15, svc: "Yard help", price: "$25/yard", rating: "4.8", reviews: 8, initials: "ML" },
+    { name: "Sam K.", age: 13, svc: "Dog walking", price: "$10/walk", rating: "4.7", reviews: 15, initials: "SK" },
+    { name: "Aisha R.", age: 15, svc: "Babysitting", price: "$13/hr", rating: "4.9", reviews: 19, initials: "AR" },
+    { name: "Piper", age: 13, svc: "Dog walking", price: "$12/walk", rating: "5.0", reviews: 3, initials: "P" },
+  ];
+
+  function renderGrid(filter) {
+    const list = (!filter || filter === 'All') ? helpers : helpers.filter(h => h.svc === filter);
+    document.getElementById('grid').innerHTML = list.map(h => `
+      <div class="helper">
+        <div class="helper-top">
+          <div class="avatar">${h.initials}</div>
+          <div>
+            <div class="name">${h.name}, ${h.age}</div>
+            <div class="meta">★ ${h.rating} · ${h.reviews} reviews</div>
+          </div>
+        </div>
+        <div class="svc">${h.svc}</div>
+        <div class="price">${h.price}</div>
+        <div class="verified">✓ Parent approved</div>
+        <button onclick="openModal('${h.name}', '${h.svc}', '${h.price}', '${h.initials}')">Request ${h.name.split(' ')[0]}</button>
+      </div>
+    `).join('');
+  }
+
+  function filt(cat, el) {
+    document.querySelectorAll('.cat').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    renderGrid(cat);
+  }
+
+  function go(id, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    else document.querySelector(`nav button[onclick*="${id}"]`).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function submitJoin(e) { e.preventDefault(); document.getElementById('join-success').style.display = 'block'; }
+
+  function openModal(name, svc, price, initials) {
+    document.getElementById('m-name').textContent = 'Request ' + name.split(' ')[0];
+    document.getElementById('m-meta').textContent = svc + ' · ' + price;
+    document.getElementById('m-avatar').textContent = initials;
+    document.getElementById('s-name').textContent = name.split(' ')[0];
+    document.getElementById('req-form').reset();
+    document.getElementById('req-success').style.display = 'none';
+    document.getElementById('modal-bg').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    document.getElementById('modal-bg').classList.remove('show');
+    document.body.style.overflow = '';
+  }
+  function submitRequest(e) {
+    e.preventDefault();
+    document.getElementById('req-success').style.display = 'block';
+    document.getElementById('req-form').querySelector('button').style.display = 'none';
+  }
+
+  renderGrid();
+</script>
+</body>
+</html>
