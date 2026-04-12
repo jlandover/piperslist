@@ -34,7 +34,7 @@
 <div id="auth-screen" class="auth">
   <h1>Admin login</h1>
   <p class="sub">Enter your admin email — we'll send you a magic link.</p>
-  <input type="email" id="login-email" placeholder="piperslist@outlook.com">
+  <input type="email" id="login-email" placeholder="youremail@email.com">
   <button onclick="sendMagicLink()">Send magic link</button>
   <p id="auth-status" style="margin-top:14px; font-size:13px; color:#6B7270;"></p>
 </div>
@@ -73,7 +73,7 @@
   const SUPABASE_URL = 'https://brezapyroueqvznuiatb.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_5vwIdN4tIa-MwxUFM4xTog_1ka8Y27X';
   // ⚠️ CHANGE THIS to your real email — only this email can access admin
-  const ADMIN_EMAIL = 'YOUR_EMAIL_HERE@example.com';
+  const ADMIN_EMAIL = 'piperslist@outlook.com';
 
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
