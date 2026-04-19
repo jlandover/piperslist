@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PipersList — Hire trusted neighborhood teens</title>
+<title>PipersList — Hire trusted neighborhood kids</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -122,14 +122,14 @@
 
   <section id="home" class="page active">
     <div class="hero">
-      <h1>Trusted neighborhood teens,<br>ready to help.</h1>
-      <p>Find local kids for babysitting, dog walking, yard work, and tutoring — all parent-approved, all right here in your neighborhood.</p>
+      <h1>Trusted neighborhood kids,<br>ready to help.</h1>
+      <p>Find local kids for babysitting, dog walking, yard work, and tutoring — all verified, all right here in your neighborhood.</p>
       <div class="cta-row">
         <button class="btn btn-primary" onclick="go('browse')">Find a helper</button>
-        <button class="btn btn-secondary" onclick="go('signup')">I'm a teen — list me</button>
+        <button class="btn btn-secondary" onclick="go('signup')">Offer your services</button>
       </div>
       <div class="trust-row">
-        <span><span class="check">✓</span> Parent approved</span>
+        <span><span class="check">✓</span> Parent on file</span>
         <span><span class="check">✓</span> Local to your block</span>
         <span><span class="check">✓</span> No fees, no middleman</span>
       </div>
@@ -137,7 +137,7 @@
 
     <h2 class="section">How it works</h2>
     <div class="how">
-      <div class="step"><div class="num">1</div><h3>Browse</h3><p>See local teens and what they offer.</p></div>
+      <div class="step"><div class="num">1</div><h3>Browse</h3><p>See local helpers and what they offer.</p></div>
       <div class="step"><div class="num">2</div><h3>Request</h3><p>Pick one, send a quick request.</p></div>
       <div class="step"><div class="num">3</div><h3>Done</h3><p>They show up. You pay them directly.</p></div>
     </div>
@@ -160,13 +160,13 @@
   <section id="signup" class="page">
     <div class="hero" style="padding-bottom: 20px;">
       <h1 style="font-size: 32px;">Offer your services</h1>
-      <p>Takes 2 minutes. A parent will confirm before you're listed.</p>
+      <p>Takes 2 minutes. Your parent will be notified when you're listed.</p>
     </div>
     <form onsubmit="submitJoin(event)">
       <label>First name</label>
       <input required placeholder="Ella">
       <label>Age</label>
-      <input type="number" required min="12" max="18" placeholder="14">
+      <input type="number" required min="12" max="30" placeholder="14">
       <label>What you offer</label>
       <div class="checks">
         <label><input type="checkbox"> Babysitting</label>
@@ -183,8 +183,8 @@
       <input required placeholder="$12 per walk, $14/hr sitting">
       <label>Parent's email</label>
       <input type="email" required placeholder="parent@email.com">
-      <button class="btn btn-primary" style="width:100%; margin-top:20px;">Send for parent approval</button>
-      <div id="join-success" style="display:none;" class="success">✓ Sent. Your parent will get an email to approve.</div>
+      <button class="btn btn-primary" style="width:100%; margin-top:20px;">List me</button>
+      <div id="join-success" style="display:none;" class="success">✓ You're listed! Your parent has been notified. They can edit or remove your listing anytime.</div>
     </form>
   </section>
 
@@ -234,7 +234,7 @@
   </div>
 </div>
 
-<footer>Piperslist · Built by a neighborhood kid · Always parent-approved</footer>
+<footer>Piperslist · Built by a neighborhood kid · Parents always notified</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -331,10 +331,17 @@
     e.preventDefault();
     const f = e.target;
     const ins = f.querySelectorAll('input');
-    const { error } = await sb.from('requests').insert({
-      helper_id: currentHelperId, what: ins[0].value, when_text: ins[1].value,
-      pay: ins[2].value, neighbor_name: ins[3].value, neighbor_phone: ins[4].value
-    });
+    const reqData = {
+      what: ins[0].value,
+      when_text: ins[1].value,
+      pay: ins[2].value,
+      neighbor_name: ins[3].value,
+      neighbor_phone: ins[4].value
+    };
+    if (currentHelperId && currentHelperId !== 'undefined' && currentHelperId !== 'null') {
+      reqData.helper_id = currentHelperId;
+    }
+    const { error } = await sb.from('requests').insert(reqData);
     if (error) { alert('Error: ' + error.message); return; }
     document.getElementById('req-success').style.display = 'block';
     f.querySelector('button').style.display = 'none';
