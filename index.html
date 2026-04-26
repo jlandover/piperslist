@@ -307,18 +307,19 @@
       </div>
 
       <div class="helper-note">
-        Helpers (and their parents) will see your contact info so they can reach out. After you post, you'll get a private link to edit or delete your post anytime.
+        Helpers (and their parents) will see your contact info so they can reach out. If you give an email, we'll send you a private link to edit or delete your post anytime.
       </div>
 
       <button class="btn btn-primary" style="width:100%; margin-top:20px;">Post the job</button>
       <div id="job-success" style="display:none;" class="success" style="text-align:left;">
         <div style="font-size: 15px; margin-bottom: 10px;">✓ Posted! Local kids can see your job now.</div>
-        <div style="font-weight: 600; color: var(--ink); margin-top: 12px;">⚠️ Save this link to edit or delete your post:</div>
+        <div id="email-sent-note" style="font-size: 13px; font-weight: 400; color: var(--muted); margin-bottom: 12px; display: none;">📧 We've emailed you a copy of the link below.</div>
+        <div style="font-weight: 600; color: var(--ink); margin-top: 8px;">Save this link to edit or delete your post:</div>
         <div style="display:flex; gap:8px; margin-top:8px;">
           <input id="edit-url-input" type="text" readonly style="flex:1; padding:10px; border:1px solid var(--line); border-radius:6px; font-size:12px; background:white; font-weight:400; color:var(--ink);">
           <button type="button" id="copy-edit-url" onclick="copyEditUrl()" style="padding:10px 14px; background:var(--forest); color:white; border:none; border-radius:6px; font-weight:600; cursor:pointer; font-size:13px;">Copy</button>
         </div>
-        <div style="font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 8px;">We won't email it to you, so save it now. (You can also bookmark this page after copying.)</div>
+        <div id="no-email-warn" style="font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 8px; display: none;">⚠️ You didn't give an email, so this is the only place you'll see this link. Save it now.</div>
       </div>
     </form>
   </div>
@@ -534,6 +535,17 @@
     if (row && row.edit_key) {
       const editUrl = window.location.origin + '/edit-job.html?key=' + row.edit_key;
       document.getElementById('edit-url-input').value = editUrl;
+    }
+
+    // Toggle the email-sent vs no-email-warning notes
+    const emailNote   = document.getElementById('email-sent-note');
+    const noEmailWarn = document.getElementById('no-email-warn');
+    if (neighbor_email) {
+      if (emailNote)   emailNote.style.display   = 'block';
+      if (noEmailWarn) noEmailWarn.style.display = 'none';
+    } else {
+      if (emailNote)   emailNote.style.display   = 'none';
+      if (noEmailWarn) noEmailWarn.style.display = 'block';
     }
 
     document.getElementById('job-success').style.display = 'block';
