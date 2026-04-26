@@ -325,20 +325,46 @@
   </div>
 </div>
 
-<!-- Contact poster modal (shown after a kid clicks "I can help") -->
-<div class="modal-bg" id="contact-modal-bg" onclick="if(event.target===this) closeContactModal()">
+<!-- Reply-to-job modal (shown after a kid clicks "I can help") -->
+<div class="modal-bg" id="reply-modal-bg" onclick="if(event.target===this) closeReplyModal()">
   <div class="modal">
-    <button class="modal-close" onclick="closeContactModal()">×</button>
+    <button class="modal-close" onclick="closeReplyModal()">×</button>
     <div class="modal-head">
       <div>
-        <h2 id="c-title">Contact the poster</h2>
-        <p id="c-sub">Reach out directly. Have a parent help if you're under 13.</p>
+        <h2>Reply to this job</h2>
+        <p id="r-sub">—</p>
       </div>
     </div>
-    <div id="c-body" style="padding: 8px 0 4px;"></div>
-    <div class="helper-note" style="margin-top: 12px;">
-      Be safe: meet in your neighborhood, take a parent the first time, and never share your address until you've talked.
-    </div>
+    <form onsubmit="submitResponse(event)" id="reply-form">
+      <label>Your first name</label>
+      <input id="r-name" required placeholder="Aiden">
+
+      <label>Your age</label>
+      <input id="r-age" type="number" min="10" max="30" required placeholder="13">
+
+      <div class="two-col">
+        <div>
+          <label>Parent's email <span class="optional-tag">(at least one)</span></label>
+          <input id="r-email" type="email" placeholder="parent@email.com">
+        </div>
+        <div>
+          <label>Parent's phone <span class="optional-tag">(at least one)</span></label>
+          <input id="r-phone" type="tel" placeholder="(913) 555-0123">
+        </div>
+      </div>
+
+      <label>Short message <span class="optional-tag">(optional)</span></label>
+      <textarea id="r-message" placeholder="e.g. I've walked dogs for 3 neighbors. Available Sat afternoon."></textarea>
+
+      <div class="helper-note">
+        The poster gets an email with your details and reaches out to your parent directly. Your contact info is only shared with this one poster — never shown publicly.
+      </div>
+
+      <button class="btn btn-primary" style="width:100%; margin-top:20px;">Send my reply</button>
+      <div id="reply-success" style="display:none;" class="success">
+        ✓ Reply sent! The poster has your details and will text or email your parent back soon.
+      </div>
+    </form>
   </div>
 </div>
 
@@ -460,7 +486,12 @@
   async function loadJobs() {
     const grid = document.getElementById('jobs-grid');
     if (!grid) return;
-    const { data, error } = await sb.from('jobs').select('*').eq('status', 'open').order('created_at', { ascending: false });
+    // Narrow select: NEVER pull poster email/phone into the browser. Replies go
+    // through the job_responses table, which triggers a server-side email.
+    const { data, error } = await sb.from('jobs')
+      .select('id,title,description,category,when_text,pay_text,neighbor_name,status,created_at')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false });
     if (error) { grid.innerHTML = '<p style="text-align:center;color:#B5443A;padding:20px;grid-column:1/-1;">Could not load jobs: ' + escapeHtml(error.message) + '</p>'; return; }
     _jobs = data || [];
     renderJobs();
@@ -483,7 +514,7 @@
         ${when}
         <div class="price">${escapeHtml(j.pay_text || '')}</div>
         <div class="posted">Posted by ${escapeHtml(j.neighbor_name || 'a neighbor')} · ${ago}</div>
-        <button onclick="openContactModal(${i})" style="margin-top: 12px;">I can help — show contact</button>
+        <button onclick="openReplyModal(${i})" style="margin-top: 12px;">I can help</button>
       </div>`;
     }).join('');
   }
@@ -569,21 +600,58 @@
     setTimeout(() => { btn.textContent = original; }, 1800);
   }
 
-  // Contact poster
-  function openContactModal(idx) {
+  // Reply to a job — kid sends their details to the poster (no contact info exposed in the browser)
+  let _currentJobId = null;
+  function openReplyModal(idx) {
     const j = _jobs[idx];
     if (!j) return;
-    document.getElementById('c-title').textContent = 'Contact ' + (j.neighbor_name || 'the poster');
-    const lines = [];
-    if (j.neighbor_phone) lines.push(`<div style="margin: 4px 0;">📱 <a href="tel:${escapeAttr(j.neighbor_phone)}">${escapeHtml(j.neighbor_phone)}</a></div>`);
-    if (j.neighbor_email) lines.push(`<div style="margin: 4px 0;">✉️ <a href="mailto:${escapeAttr(j.neighbor_email)}?subject=${encodeURIComponent('Re: ' + j.title)}">${escapeHtml(j.neighbor_email)}</a></div>`);
-    document.getElementById('c-body').innerHTML = lines.join('') || '<em>No contact info on file.</em>';
-    document.getElementById('contact-modal-bg').classList.add('show');
+    _currentJobId = j.id;
+    document.getElementById('r-sub').textContent = j.title;
+    const f = document.getElementById('reply-form');
+    f.reset();
+    document.getElementById('reply-success').style.display = 'none';
+    const btn = f.querySelector('button[type="submit"], button:not([type])');
+    if (btn) btn.style.display = '';
+    document.getElementById('reply-modal-bg').classList.add('show');
     document.body.style.overflow = 'hidden';
   }
-  function closeContactModal() {
-    document.getElementById('contact-modal-bg').classList.remove('show');
+
+  function closeReplyModal() {
+    document.getElementById('reply-modal-bg').classList.remove('show');
     document.body.style.overflow = '';
+  }
+
+  async function submitResponse(e) {
+    e.preventDefault();
+    if (!_currentJobId) return;
+    const f = e.target;
+    const first_name   = document.getElementById('r-name').value.trim();
+    const ageRaw       = document.getElementById('r-age').value;
+    const parent_email = document.getElementById('r-email').value.trim();
+    const parent_phone = document.getElementById('r-phone').value.trim();
+    const message      = document.getElementById('r-message').value.trim();
+
+    if (!parent_email && !parent_phone) {
+      alert("Please give a parent's email OR phone so the poster can reach you.");
+      return;
+    }
+
+    const age = ageRaw ? parseInt(ageRaw, 10) : null;
+
+    const { error } = await sb.from('job_responses').insert({
+      job_id: _currentJobId,
+      first_name,
+      age: (age && !isNaN(age)) ? age : null,
+      parent_email: parent_email || null,
+      parent_phone: parent_phone || null,
+      message: message || null
+    });
+
+    if (error) { alert('Error: ' + error.message); return; }
+
+    document.getElementById('reply-success').style.display = 'block';
+    const btn = f.querySelector('button[type="submit"], button:not([type])');
+    if (btn) btn.style.display = 'none';
   }
 
   // ===== Utilities =====
