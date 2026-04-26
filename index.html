@@ -98,10 +98,27 @@
 
   footer { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
 
+  /* Smart search bar */
+  .search-bar { display: flex; gap: 8px; max-width: 720px; margin: 0 auto 8px; padding: 0; background: transparent; border: none; }
+  .search-bar input { flex: 1; padding: 13px 16px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; font-family: inherit; background: white; }
+  .search-bar input:focus { outline: none; border-color: var(--forest); }
+  .search-bar button { padding: 13px 20px; }
+  .search-status { max-width: 720px; margin: 0 auto 18px; padding: 0 4px; font-size: 13px; color: var(--muted); min-height: 18px; text-align: center; }
+  .search-status.error { color: #B5443A; }
+  .ai-badge { display: inline-block; background: var(--forest); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; margin-right: 6px; vertical-align: 1px; }
+
+  /* Job cards (Help Wanted) reuse .helper styling, but a few overrides */
+  .job .job-tag { display: inline-block; background: var(--cream); color: var(--forest); font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.3px; }
+  .job .desc { font-size: 13px; color: var(--ink); margin: 8px 0; line-height: 1.5; }
+  .job .when { font-size: 13px; color: var(--muted); }
+  .job .posted { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
   @media (max-width: 600px) {
     .hero h1 { font-size: 32px; }
     .cats { grid-template-columns: repeat(2, 1fr); }
     .how { grid-template-columns: 1fr; }
+    .search-bar { flex-direction: column; }
+    .search-bar button { width: 100%; }
   }
 </style>
 </head>
@@ -113,6 +130,7 @@
     <nav>
       <button onclick="go('home', this)" class="active">Home</button>
       <button onclick="go('browse', this)">Find help</button>
+      <button onclick="go('jobs', this)">Help wanted</button>
       <button onclick="go('signup', this)">Offer help</button>
     </nav>
   </div>
@@ -126,6 +144,7 @@
       <p>Find local kids for babysitting, dog walking, yard work, and tutoring — all verified, all right here in your neighborhood.</p>
       <div class="cta-row">
         <button class="btn btn-primary" onclick="go('browse')">Find a helper</button>
+        <button class="btn btn-secondary" onclick="go('jobs')">Post a job</button>
         <button class="btn btn-secondary" onclick="go('signup')">Offer your services</button>
       </div>
       <div class="trust-row">
@@ -146,8 +165,16 @@
   <section id="browse" class="page">
     <div class="hero" style="padding-bottom: 20px;">
       <h1 style="font-size: 32px;">Find a helper</h1>
-      <p>Tap a category to filter.</p>
+      <p>Search in your own words, or tap a category.</p>
     </div>
+
+    <form class="search-bar" onsubmit="smartSearch(event)">
+      <input id="search-q" type="text" placeholder='Try "someone to walk my golden retriever Saturday afternoon"'>
+      <button type="submit" class="btn btn-primary" id="search-btn">Search</button>
+      <button type="button" class="btn btn-secondary" id="search-clear" style="display:none;" onclick="clearSearch()">Clear</button>
+    </form>
+    <div id="search-status" class="search-status"></div>
+
     <div class="cats">
       <div class="cat active" onclick="filt('All', this)"><span class="emoji">🏡</span><div class="name">All</div></div>
       <div class="cat" onclick="filt('Babysitting', this)"><span class="emoji">👶</span><div class="name">Sitting</div></div>
@@ -186,6 +213,18 @@
       <button class="btn btn-primary" style="width:100%; margin-top:20px;">List me</button>
       <div id="join-success" style="display:none;" class="success">✓ You're listed! Your parent has been notified. They can edit or remove your listing anytime.</div>
     </form>
+  </section>
+
+  <section id="jobs" class="page">
+    <div class="hero" style="padding-bottom: 20px;">
+      <h1 style="font-size: 32px;">Help wanted</h1>
+      <p>Need a hand with something? Post it here. Local kids will see it.</p>
+      <div class="cta-row" style="margin-top: 20px;">
+        <button class="btn btn-primary" onclick="openPostJob()">Post a job</button>
+      </div>
+    </div>
+
+    <div class="grid" id="jobs-grid"></div>
   </section>
 
 </main>
@@ -231,6 +270,87 @@
         <span style="font-weight: 400; font-size: 13px;">Their parent has been notified too.</span>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Post a Job modal -->
+<div class="modal-bg" id="job-modal-bg" onclick="if(event.target===this) closeJobModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeJobModal()">×</button>
+    <div class="modal-head">
+      <div>
+        <h2>Post a job</h2>
+        <p>Local kids will see this on the Help Wanted page.</p>
+      </div>
+    </div>
+    <form onsubmit="submitJob(event)" id="job-form">
+      <label>Short title</label>
+      <input required maxlength="80" placeholder="e.g. Mow front yard this Saturday">
+
+      <label>Details</label>
+      <textarea required placeholder="What needs doing? Any tools provided? Pets? Anything kids should know?"></textarea>
+
+      <div class="two-col">
+        <div>
+          <label>Category</label>
+          <select required>
+            <option value="">Pick one…</option>
+            <option>Babysitting</option>
+            <option>Dog walking</option>
+            <option>Yard help</option>
+            <option>Tutoring</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label>When</label>
+          <input required placeholder="Sat afternoon">
+        </div>
+      </div>
+
+      <label>Pay</label>
+      <input required placeholder="$25 flat, or $15/hr">
+
+      <label>Your name</label>
+      <input required placeholder="Mr. Patel">
+
+      <div class="two-col">
+        <div>
+          <label>Email <span class="optional-tag">(at least one)</span></label>
+          <input type="email" placeholder="you@email.com">
+        </div>
+        <div>
+          <label>Phone <span class="optional-tag">(at least one)</span></label>
+          <input type="tel" placeholder="(913) 555-0123">
+        </div>
+      </div>
+
+      <div class="helper-note">
+        Helpers (and their parents) will see your contact info so they can reach out. Your post stays up until you ask us to take it down.
+      </div>
+
+      <button class="btn btn-primary" style="width:100%; margin-top:20px;">Post the job</button>
+      <div id="job-success" style="display:none;" class="success">
+        ✓ Posted! Local kids can see your job now.
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Contact poster modal (shown after a kid clicks "I can help") -->
+<div class="modal-bg" id="contact-modal-bg" onclick="if(event.target===this) closeContactModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeContactModal()">×</button>
+    <div class="modal-head">
+      <div>
+        <h2 id="c-title">Contact the poster</h2>
+        <p id="c-sub">Reach out directly. Have a parent help if you're under 13.</p>
+      </div>
+    </div>
+    <div id="c-body" style="padding: 8px 0 4px;"></div>
+    <div class="helper-note" style="margin-top: 12px;">
+      Be safe: meet in your neighborhood, take a parent the first time, and never share your address until you've talked.
+    </div>
   </div>
 </div>
 
@@ -347,6 +467,211 @@
     f.querySelector('button').style.display = 'none';
   }
 
+  // ===== Smart search (Claude Haiku via /api/search) =====
+  let _searchOrder = null;            // array of helper ids in best-fit order, or null = no active search
+  let _searchExplanation = '';
+
+  async function smartSearch(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const q = (document.getElementById('search-q').value || '').trim();
+    const status = document.getElementById('search-status');
+    const btn = document.getElementById('search-btn');
+    const clearBtn = document.getElementById('search-clear');
+
+    if (!q) { clearSearch(); return; }
+    if (!_helpers.length) { status.textContent = 'No helpers listed yet — be the first!'; return; }
+
+    btn.disabled = true; btn.textContent = 'Thinking…';
+    status.classList.remove('error');
+    status.innerHTML = '<span class="ai-badge">AI</span> Searching with Claude Haiku…';
+
+    try {
+      const resp = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q, helpers: _helpers })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || ('HTTP ' + resp.status));
+
+      _searchOrder = Array.isArray(data.matches) ? data.matches : [];
+      _searchExplanation = data.explanation || '';
+
+      // Reset category filter when searching, so AI ordering is visible
+      document.querySelectorAll('.cat').forEach(c => c.classList.remove('active'));
+      document.querySelector('.cat').classList.add('active');
+
+      renderGrid('All');
+
+      const count = _searchOrder.length;
+      if (count) {
+        status.innerHTML = '<span class="ai-badge">AI</span> ' +
+          count + (count === 1 ? ' match' : ' matches') +
+          (_searchExplanation ? ' · ' + escapeHtml(_searchExplanation) : '');
+      } else {
+        status.innerHTML = '<span class="ai-badge">AI</span> No good matches. Try different words, or browse all helpers below.';
+      }
+      clearBtn.style.display = '';
+    } catch (err) {
+      console.error(err);
+      status.classList.add('error');
+      status.textContent = 'Search hit an error: ' + (err.message || err);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Search';
+    }
+  }
+
+  function clearSearch() {
+    _searchOrder = null;
+    _searchExplanation = '';
+    document.getElementById('search-q').value = '';
+    document.getElementById('search-status').innerHTML = '';
+    document.getElementById('search-clear').style.display = 'none';
+    renderGrid('All');
+  }
+
+  // ===== Help Wanted: jobs =====
+  let _jobs = [];
+  async function loadJobs() {
+    const grid = document.getElementById('jobs-grid');
+    if (!grid) return;
+    const { data, error } = await sb.from('jobs').select('*').eq('status', 'open').order('created_at', { ascending: false });
+    if (error) { grid.innerHTML = '<p style="text-align:center;color:#B5443A;padding:20px;grid-column:1/-1;">Could not load jobs: ' + escapeHtml(error.message) + '</p>'; return; }
+    _jobs = data || [];
+    renderJobs();
+  }
+
+  function renderJobs() {
+    const grid = document.getElementById('jobs-grid');
+    if (!grid) return;
+    if (!_jobs.length) {
+      grid.innerHTML = '<p style="text-align:center;color:#666;padding:40px;grid-column:1/-1;">No jobs posted yet — be the first! Click "Post a job" above.</p>';
+      return;
+    }
+    grid.innerHTML = _jobs.map((j, i) => {
+      const cat = j.category ? `<span class="job-tag">${escapeHtml(j.category)}</span>` : '';
+      const when = j.when_text ? `<div class="when">📅 ${escapeHtml(j.when_text)}</div>` : '';
+      const ago = timeAgo(j.created_at);
+      return `<div class="helper job">
+        <div class="helper-top"><div><div class="name">${escapeHtml(j.title)}</div><div class="meta">${cat}</div></div></div>
+        <div class="desc">${escapeHtml(j.description)}</div>
+        ${when}
+        <div class="price">${escapeHtml(j.pay_text || '')}</div>
+        <div class="posted">Posted by ${escapeHtml(j.neighbor_name || 'a neighbor')} · ${ago}</div>
+        <button onclick="openContactModal(${i})" style="margin-top: 12px;">I can help — show contact</button>
+      </div>`;
+    }).join('');
+  }
+
+  // Post a job
+  function openPostJob() {
+    const f = document.getElementById('job-form');
+    f.reset();
+    document.getElementById('job-success').style.display = 'none';
+    const submit = f.querySelector('button[type="submit"], button:not([type])');
+    if (submit) submit.style.display = '';
+    document.getElementById('job-modal-bg').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeJobModal() {
+    document.getElementById('job-modal-bg').classList.remove('show');
+    document.body.style.overflow = '';
+  }
+  async function submitJob(e) {
+    e.preventDefault();
+    const f = e.target;
+    const title       = f.querySelector('input[maxlength="80"]').value.trim();
+    const description = f.querySelector('textarea').value.trim();
+    const category    = f.querySelector('select').value;
+    const inputs      = f.querySelectorAll('input');
+    // Order: title, when, pay, name, email, phone
+    const when_text = inputs[1].value.trim();
+    const pay_text  = inputs[2].value.trim();
+    const neighbor_name  = inputs[3].value.trim();
+    const neighbor_email = inputs[4].value.trim();
+    const neighbor_phone = inputs[5].value.trim();
+
+    if (!neighbor_email && !neighbor_phone) {
+      alert('Please give an email OR a phone so kids can reach you.');
+      return;
+    }
+
+    const { error } = await sb.from('jobs').insert({
+      title, description, category, when_text, pay_text,
+      neighbor_name,
+      neighbor_email: neighbor_email || null,
+      neighbor_phone: neighbor_phone || null,
+      status: 'open'
+    });
+    if (error) { alert('Error: ' + error.message); return; }
+
+    document.getElementById('job-success').style.display = 'block';
+    const btn = f.querySelector('button[type="submit"], button:not([type])');
+    if (btn) btn.style.display = 'none';
+    loadJobs();
+  }
+
+  // Contact poster
+  function openContactModal(idx) {
+    const j = _jobs[idx];
+    if (!j) return;
+    document.getElementById('c-title').textContent = 'Contact ' + (j.neighbor_name || 'the poster');
+    const lines = [];
+    if (j.neighbor_phone) lines.push(`<div style="margin: 4px 0;">📱 <a href="tel:${escapeAttr(j.neighbor_phone)}">${escapeHtml(j.neighbor_phone)}</a></div>`);
+    if (j.neighbor_email) lines.push(`<div style="margin: 4px 0;">✉️ <a href="mailto:${escapeAttr(j.neighbor_email)}?subject=${encodeURIComponent('Re: ' + j.title)}">${escapeHtml(j.neighbor_email)}</a></div>`);
+    document.getElementById('c-body').innerHTML = lines.join('') || '<em>No contact info on file.</em>';
+    document.getElementById('contact-modal-bg').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeContactModal() {
+    document.getElementById('contact-modal-bg').classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  // ===== Utilities =====
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function escapeAttr(s) { return escapeHtml(s); }
+  function timeAgo(ts) {
+    if (!ts) return '';
+    const then = new Date(ts).getTime();
+    const diff = Math.max(0, Date.now() - then);
+    const m = Math.floor(diff / 60000);
+    if (m < 1)  return 'just now';
+    if (m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ago';
+    const d = Math.floor(h / 24);
+    return d + 'd ago';
+  }
+
+  // Override renderGrid to support AI ordering when a search is active
+  const _origRenderGrid = renderGrid;
+  renderGrid = function(filter) {
+    if (_searchOrder && _searchOrder.length) {
+      const byId = new Map(_helpers.map(h => [h.id, h]));
+      const ordered = _searchOrder.map(id => byId.get(id)).filter(Boolean);
+      const grid = document.getElementById('grid');
+      if (!ordered.length) { grid.innerHTML = '<p style="text-align:center;color:#666;padding:40px;grid-column:1/-1;">No matching helpers — try clearing the search.</p>'; return; }
+      grid.innerHTML = ordered.map(h => {
+        const initials = h.first_name.split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2);
+        const svcText = (h.services||[]).join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
+        // Match the existing renderGrid's escaping pattern for the JS-in-onclick context
+        return `<div class="helper">
+          <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${h.first_name}, ${h.age}</div><div class="meta"><span class="ai-badge">AI</span>Best match</div></div></div>
+          <div class="svc">${svcText}</div><div class="price">${h.rate}</div><div class="verified">✓ Verified</div>
+          <button onclick="openModal('${h.first_name.replace(/'/g,"\\'")}','${svcText.replace(/'/g,"\\'")}','${h.rate}','${initials}','${h.id}')">Request ${h.first_name}</button>
+        </div>`;
+      }).join('');
+      return;
+    }
+    _origRenderGrid(filter);
+  };
+
   loadHelpers();
+  loadJobs();
 </script></body>
 </html>
