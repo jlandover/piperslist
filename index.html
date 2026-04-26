@@ -98,6 +98,12 @@
 
   footer { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
 
+  /* Job cards (Help Wanted) reuse .helper styling, but a few overrides */
+  .job .job-tag { display: inline-block; background: var(--cream); color: var(--forest); font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.3px; }
+  .job .desc { font-size: 13px; color: var(--ink); margin: 8px 0; line-height: 1.5; }
+  .job .when { font-size: 13px; color: var(--muted); }
+  .job .posted { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
   @media (max-width: 600px) {
     .hero h1 { font-size: 32px; }
     .cats { grid-template-columns: repeat(2, 1fr); }
@@ -113,6 +119,7 @@
     <nav>
       <button onclick="go('home', this)" class="active">Home</button>
       <button onclick="go('browse', this)">Find help</button>
+      <button onclick="go('jobs', this)">Help wanted</button>
       <button onclick="go('signup', this)">Offer help</button>
     </nav>
   </div>
@@ -126,6 +133,7 @@
       <p>Find local kids for babysitting, dog walking, yard work, and tutoring — all verified, all right here in your neighborhood.</p>
       <div class="cta-row">
         <button class="btn btn-primary" onclick="go('browse')">Find a helper</button>
+        <button class="btn btn-secondary" onclick="go('jobs')">Post a job</button>
         <button class="btn btn-secondary" onclick="go('signup')">Offer your services</button>
       </div>
       <div class="trust-row">
@@ -188,6 +196,18 @@
     </form>
   </section>
 
+  <section id="jobs" class="page">
+    <div class="hero" style="padding-bottom: 20px;">
+      <h1 style="font-size: 32px;">Help wanted</h1>
+      <p>Need a hand with something? Post it here. Local kids will see it.</p>
+      <div class="cta-row" style="margin-top: 20px;">
+        <button class="btn btn-primary" onclick="openPostJob()">Post a job</button>
+      </div>
+    </div>
+
+    <div class="grid" id="jobs-grid"></div>
+  </section>
+
 </main>
 
 <div class="modal-bg" id="modal-bg" onclick="if(event.target===this) closeModal()">
@@ -231,6 +251,87 @@
         <span style="font-weight: 400; font-size: 13px;">Their parent has been notified too.</span>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Post a Job modal -->
+<div class="modal-bg" id="job-modal-bg" onclick="if(event.target===this) closeJobModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeJobModal()">×</button>
+    <div class="modal-head">
+      <div>
+        <h2>Post a job</h2>
+        <p>Local kids will see this on the Help Wanted page.</p>
+      </div>
+    </div>
+    <form onsubmit="submitJob(event)" id="job-form">
+      <label>Short title</label>
+      <input required maxlength="80" placeholder="e.g. Mow front yard this Saturday">
+
+      <label>Details</label>
+      <textarea required placeholder="What needs doing? Any tools provided? Pets? Anything kids should know?"></textarea>
+
+      <div class="two-col">
+        <div>
+          <label>Category</label>
+          <select required>
+            <option value="">Pick one…</option>
+            <option>Babysitting</option>
+            <option>Dog walking</option>
+            <option>Yard help</option>
+            <option>Tutoring</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label>When</label>
+          <input required placeholder="Sat afternoon">
+        </div>
+      </div>
+
+      <label>Pay</label>
+      <input required placeholder="$25 flat, or $15/hr">
+
+      <label>Your name</label>
+      <input required placeholder="Mr. Patel">
+
+      <div class="two-col">
+        <div>
+          <label>Email <span class="optional-tag">(at least one)</span></label>
+          <input type="email" placeholder="you@email.com">
+        </div>
+        <div>
+          <label>Phone <span class="optional-tag">(at least one)</span></label>
+          <input type="tel" placeholder="(913) 555-0123">
+        </div>
+      </div>
+
+      <div class="helper-note">
+        Helpers (and their parents) will see your contact info so they can reach out. Your post stays up until you ask us to take it down.
+      </div>
+
+      <button class="btn btn-primary" style="width:100%; margin-top:20px;">Post the job</button>
+      <div id="job-success" style="display:none;" class="success">
+        ✓ Posted! Local kids can see your job now.
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Contact poster modal (shown after a kid clicks "I can help") -->
+<div class="modal-bg" id="contact-modal-bg" onclick="if(event.target===this) closeContactModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeContactModal()">×</button>
+    <div class="modal-head">
+      <div>
+        <h2 id="c-title">Contact the poster</h2>
+        <p id="c-sub">Reach out directly. Have a parent help if you're under 13.</p>
+      </div>
+    </div>
+    <div id="c-body" style="padding: 8px 0 4px;"></div>
+    <div class="helper-note" style="margin-top: 12px;">
+      Be safe: meet in your neighborhood, take a parent the first time, and never share your address until you've talked.
+    </div>
   </div>
 </div>
 
@@ -347,6 +448,125 @@
     f.querySelector('button').style.display = 'none';
   }
 
+  // ===== Help Wanted: jobs =====
+  let _jobs = [];
+  async function loadJobs() {
+    const grid = document.getElementById('jobs-grid');
+    if (!grid) return;
+    const { data, error } = await sb.from('jobs').select('*').eq('status', 'open').order('created_at', { ascending: false });
+    if (error) { grid.innerHTML = '<p style="text-align:center;color:#B5443A;padding:20px;grid-column:1/-1;">Could not load jobs: ' + escapeHtml(error.message) + '</p>'; return; }
+    _jobs = data || [];
+    renderJobs();
+  }
+
+  function renderJobs() {
+    const grid = document.getElementById('jobs-grid');
+    if (!grid) return;
+    if (!_jobs.length) {
+      grid.innerHTML = '<p style="text-align:center;color:#666;padding:40px;grid-column:1/-1;">No jobs posted yet — be the first! Click "Post a job" above.</p>';
+      return;
+    }
+    grid.innerHTML = _jobs.map((j, i) => {
+      const cat = j.category ? `<span class="job-tag">${escapeHtml(j.category)}</span>` : '';
+      const when = j.when_text ? `<div class="when">📅 ${escapeHtml(j.when_text)}</div>` : '';
+      const ago = timeAgo(j.created_at);
+      return `<div class="helper job">
+        <div class="helper-top"><div><div class="name">${escapeHtml(j.title)}</div><div class="meta">${cat}</div></div></div>
+        <div class="desc">${escapeHtml(j.description)}</div>
+        ${when}
+        <div class="price">${escapeHtml(j.pay_text || '')}</div>
+        <div class="posted">Posted by ${escapeHtml(j.neighbor_name || 'a neighbor')} · ${ago}</div>
+        <button onclick="openContactModal(${i})" style="margin-top: 12px;">I can help — show contact</button>
+      </div>`;
+    }).join('');
+  }
+
+  // Post a job
+  function openPostJob() {
+    const f = document.getElementById('job-form');
+    f.reset();
+    document.getElementById('job-success').style.display = 'none';
+    const submit = f.querySelector('button[type="submit"], button:not([type])');
+    if (submit) submit.style.display = '';
+    document.getElementById('job-modal-bg').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeJobModal() {
+    document.getElementById('job-modal-bg').classList.remove('show');
+    document.body.style.overflow = '';
+  }
+  async function submitJob(e) {
+    e.preventDefault();
+    const f = e.target;
+    const title       = f.querySelector('input[maxlength="80"]').value.trim();
+    const description = f.querySelector('textarea').value.trim();
+    const category    = f.querySelector('select').value;
+    const inputs      = f.querySelectorAll('input');
+    // Order: title, when, pay, name, email, phone
+    const when_text = inputs[1].value.trim();
+    const pay_text  = inputs[2].value.trim();
+    const neighbor_name  = inputs[3].value.trim();
+    const neighbor_email = inputs[4].value.trim();
+    const neighbor_phone = inputs[5].value.trim();
+
+    if (!neighbor_email && !neighbor_phone) {
+      alert('Please give an email OR a phone so kids can reach you.');
+      return;
+    }
+
+    const { error } = await sb.from('jobs').insert({
+      title, description, category, when_text, pay_text,
+      neighbor_name,
+      neighbor_email: neighbor_email || null,
+      neighbor_phone: neighbor_phone || null,
+      status: 'open'
+    });
+    if (error) { alert('Error: ' + error.message); return; }
+
+    document.getElementById('job-success').style.display = 'block';
+    const btn = f.querySelector('button[type="submit"], button:not([type])');
+    if (btn) btn.style.display = 'none';
+    loadJobs();
+  }
+
+  // Contact poster
+  function openContactModal(idx) {
+    const j = _jobs[idx];
+    if (!j) return;
+    document.getElementById('c-title').textContent = 'Contact ' + (j.neighbor_name || 'the poster');
+    const lines = [];
+    if (j.neighbor_phone) lines.push(`<div style="margin: 4px 0;">📱 <a href="tel:${escapeAttr(j.neighbor_phone)}">${escapeHtml(j.neighbor_phone)}</a></div>`);
+    if (j.neighbor_email) lines.push(`<div style="margin: 4px 0;">✉️ <a href="mailto:${escapeAttr(j.neighbor_email)}?subject=${encodeURIComponent('Re: ' + j.title)}">${escapeHtml(j.neighbor_email)}</a></div>`);
+    document.getElementById('c-body').innerHTML = lines.join('') || '<em>No contact info on file.</em>';
+    document.getElementById('contact-modal-bg').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeContactModal() {
+    document.getElementById('contact-modal-bg').classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  // ===== Utilities =====
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function escapeAttr(s) { return escapeHtml(s); }
+  function timeAgo(ts) {
+    if (!ts) return '';
+    const then = new Date(ts).getTime();
+    const diff = Math.max(0, Date.now() - then);
+    const m = Math.floor(diff / 60000);
+    if (m < 1)  return 'just now';
+    if (m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ago';
+    const d = Math.floor(h / 24);
+    return d + 'd ago';
+  }
+
   loadHelpers();
+  loadJobs();
 </script></body>
 </html>
