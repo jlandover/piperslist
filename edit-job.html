@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit your job post — PipersList</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  :root { --forest: #2D4A3E; --cream: #F7F3EA; --ink: #1F2421; --muted: #6B7270; --line: #E4DFD2; --ok: #4A7C59; --danger: #B33A3A; }
+  body { background: var(--cream); color: var(--ink); padding: 20px; }
+  .container { max-width: 520px; margin: 40px auto; }
+  h1 { color: var(--forest); font-size: 24px; margin-bottom: 6px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .card { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--ink); }
+  input, select, textarea { width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--cream); }
+  textarea { min-height: 90px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--forest); background: white; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn { width: 100%; border: none; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 16px; }
+  .btn-save { background: var(--forest); color: white; }
+  .btn-save:hover { background: #1E3429; }
+  .btn-delete { background: white; color: var(--danger); border: 1.5px solid var(--danger); margin-top: 10px; }
+  .btn-delete:hover { background: #fef0f0; }
+  .success { background: #E8F0EA; color: var(--ok); padding: 14px; border-radius: 8px; margin-top: 16px; text-align: center; font-size: 14px; font-weight: 600; display: none; }
+  .error { text-align: center; color: var(--danger); padding: 40px; font-size: 16px; }
+  .loading { text-align: center; color: var(--muted); padding: 40px; font-size: 16px; }
+  a.home { display: inline-block; margin-top: 20px; color: var(--forest); font-size: 13px; text-decoration: none; }
+  a.home:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Edit your job post</h1>
+  <p class="sub">Update or delete your post anytime.</p>
+
+  <div id="loading" class="loading">Loading your post...</div>
+  <div id="not-found" class="error" style="display:none;">Post not found. This link may be wrong, or the post was already deleted.</div>
+
+  <div class="card" id="edit-form" style="display:none;">
+    <label>Short title</label>
+    <input id="f-title" maxlength="80" required>
+
+    <label>Details</label>
+    <textarea id="f-desc" required></textarea>
+
+    <div class="two-col">
+      <div>
+        <label>Category</label>
+        <select id="f-cat">
+          <option>Babysitting</option>
+          <option>Dog walking</option>
+          <option>Yard help</option>
+          <option>Tutoring</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label>When</label>
+        <input id="f-when">
+      </div>
+    </div>
+
+    <label>Pay</label>
+    <input id="f-pay">
+
+    <label>Your name</label>
+    <input id="f-name">
+
+    <div class="two-col">
+      <div>
+        <label>Email</label>
+        <input id="f-email" type="email">
+      </div>
+      <div>
+        <label>Phone</label>
+        <input id="f-phone" type="tel">
+      </div>
+    </div>
+
+    <label>Status</label>
+    <select id="f-status">
+      <option value="open">Open — show on the site</option>
+      <option value="filled">Filled — hide from the site</option>
+      <option value="closed">Closed — hide from the site</option>
+    </select>
+
+    <button class="btn btn-save" onclick="saveChanges()">Save changes</button>
+    <button class="btn btn-delete" onclick="deletePost()">Delete my post</button>
+    <div class="success" id="msg"></div>
+    <a class="home" href="/">← Back to PipersList</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://brezapyroueqvznuiatb.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_5vwIdN4tIa-MwxUFM4xTog_1ka8Y27X';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const params = new URLSearchParams(window.location.search);
+  const editKey = params.get('key');
+
+  function showError() {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('not-found').style.display = 'block';
+  }
+
+  function flash(text, ok) {
+    const msg = document.getElementById('msg');
+    msg.style.display = 'block';
+    msg.style.background = ok ? '#E8F0EA' : '#fef0f0';
+    msg.style.color = ok ? '#4A7C59' : '#B33A3A';
+    msg.textContent = text;
+  }
+
+  async function loadPost() {
+    if (!editKey) { showError(); return; }
+
+    const { data, error } = await sb.from('jobs').select('*').eq('edit_key', editKey).single();
+    if (error || !data) { showError(); return; }
+
+    document.getElementById('f-title').value  = data.title || '';
+    document.getElementById('f-desc').value   = data.description || '';
+    document.getElementById('f-cat').value    = data.category || 'Other';
+    document.getElementById('f-when').value   = data.when_text || '';
+    document.getElementById('f-pay').value    = data.pay_text || '';
+    document.getElementById('f-name').value   = data.neighbor_name || '';
+    document.getElementById('f-email').value  = data.neighbor_email || '';
+    document.getElementById('f-phone').value  = data.neighbor_phone || '';
+    document.getElementById('f-status').value = data.status || 'open';
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('edit-form').style.display = 'block';
+  }
+
+  async function saveChanges() {
+    const email = document.getElementById('f-email').value.trim();
+    const phone = document.getElementById('f-phone').value.trim();
+    if (!email && !phone) {
+      flash('Please give an email OR a phone so kids can reach you.', false);
+      return;
+    }
+
+    const { error } = await sb.from('jobs').update({
+      title:          document.getElementById('f-title').value.trim(),
+      description:    document.getElementById('f-desc').value.trim(),
+      category:       document.getElementById('f-cat').value,
+      when_text:      document.getElementById('f-when').value.trim(),
+      pay_text:       document.getElementById('f-pay').value.trim(),
+      neighbor_name:  document.getElementById('f-name').value.trim(),
+      neighbor_email: email || null,
+      neighbor_phone: phone || null,
+      status:         document.getElementById('f-status').value
+    }).eq('edit_key', editKey);
+
+    if (error) flash('Error saving: ' + error.message, false);
+    else flash('✓ Post updated!', true);
+  }
+
+  async function deletePost() {
+    if (!confirm('Delete this post? This cannot be undone.')) return;
+
+    const { error } = await sb.from('jobs').delete().eq('edit_key', editKey);
+    if (error) {
+      flash('Error deleting: ' + error.message, false);
+      return;
+    }
+    document.getElementById('edit-form').style.display = 'none';
+    const container = document.querySelector('.container');
+    const done = document.createElement('div');
+    done.className = 'success';
+    done.style.display = 'block';
+    done.textContent = '✓ Post deleted. You can close this page.';
+    container.appendChild(done);
+  }
+
+  loadPost();
+</script>
+</body>
+</html>
