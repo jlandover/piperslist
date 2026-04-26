@@ -307,12 +307,18 @@
       </div>
 
       <div class="helper-note">
-        Helpers (and their parents) will see your contact info so they can reach out. Your post stays up until you ask us to take it down.
+        Helpers (and their parents) will see your contact info so they can reach out. After you post, you'll get a private link to edit or delete your post anytime.
       </div>
 
       <button class="btn btn-primary" style="width:100%; margin-top:20px;">Post the job</button>
-      <div id="job-success" style="display:none;" class="success">
-        ✓ Posted! Local kids can see your job now.
+      <div id="job-success" style="display:none;" class="success" style="text-align:left;">
+        <div style="font-size: 15px; margin-bottom: 10px;">✓ Posted! Local kids can see your job now.</div>
+        <div style="font-weight: 600; color: var(--ink); margin-top: 12px;">⚠️ Save this link to edit or delete your post:</div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <input id="edit-url-input" type="text" readonly style="flex:1; padding:10px; border:1px solid var(--line); border-radius:6px; font-size:12px; background:white; font-weight:400; color:var(--ink);">
+          <button type="button" id="copy-edit-url" onclick="copyEditUrl()" style="padding:10px 14px; background:var(--forest); color:white; border:none; border-radius:6px; font-weight:600; cursor:pointer; font-size:13px;">Copy</button>
+        </div>
+        <div style="font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 8px;">We won't email it to you, so save it now. (You can also bookmark this page after copying.)</div>
       </div>
     </form>
   </div>
@@ -514,19 +520,41 @@
       return;
     }
 
-    const { error } = await sb.from('jobs').insert({
+    // .select().single() returns the inserted row, including the auto-generated edit_key
+    const { data: row, error } = await sb.from('jobs').insert({
       title, description, category, when_text, pay_text,
       neighbor_name,
       neighbor_email: neighbor_email || null,
       neighbor_phone: neighbor_phone || null,
       status: 'open'
-    });
+    }).select().single();
     if (error) { alert('Error: ' + error.message); return; }
+
+    // Build the secret edit URL and put it in the success box
+    if (row && row.edit_key) {
+      const editUrl = window.location.origin + '/edit-job.html?key=' + row.edit_key;
+      document.getElementById('edit-url-input').value = editUrl;
+    }
 
     document.getElementById('job-success').style.display = 'block';
     const btn = f.querySelector('button[type="submit"], button:not([type])');
     if (btn) btn.style.display = 'none';
     loadJobs();
+  }
+
+  function copyEditUrl() {
+    const input = document.getElementById('edit-url-input');
+    input.select();
+    input.setSelectionRange(0, 99999);
+    try {
+      navigator.clipboard.writeText(input.value);
+    } catch (_) {
+      document.execCommand('copy');
+    }
+    const btn = document.getElementById('copy-edit-url');
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = original; }, 1800);
   }
 
   // Contact poster
