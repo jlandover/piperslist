@@ -7,38 +7,26 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --forest: #2D4A3E;
-    --forest-dark: #1E3429;
-    --cream: #F7F3EA;
-    --warm: #D4A574;
-    --ink: #1F2421;
-    --muted: #6B7270;
-    --line: #E4DFD2;
-    --ok: #4A7C59;
-    --danger: #B33A3A;
+    --forest: #2D4A3E; --forest-dark: #1E3429; --cream: #F7F3EA; --warm: #D4A574;
+    --ink: #1F2421; --muted: #6B7270; --line: #E4DFD2; --ok: #4A7C59; --danger: #B33A3A;
   }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif; background: var(--cream); color: var(--ink); line-height: 1.55; }
   .container { max-width: 880px; margin: 0 auto; padding: 24px; }
-
   header { padding: 20px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: baseline; }
   header h1 { font-size: 22px; color: var(--forest); font-weight: 700; letter-spacing: -0.3px; }
   header a { color: var(--muted); text-decoration: none; font-size: 13px; }
   header a:hover { color: var(--forest); }
   .preview-badge { display: inline-block; background: var(--warm); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; margin-left: 8px; vertical-align: middle; }
-
   .intro { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
-
   .search-bar { display: flex; gap: 8px; margin-bottom: 8px; }
   .search-bar input { flex: 1; padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; font-family: inherit; background: white; }
   .search-bar input:focus { outline: none; border-color: var(--forest); }
   .search-bar button { padding: 14px 22px; background: var(--forest); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
   .search-bar button:hover { background: var(--forest-dark); }
   .search-bar button:disabled { background: #9aa6a1; cursor: not-allowed; }
-
   .status { min-height: 22px; padding: 4px 2px; font-size: 13px; color: var(--muted); margin-bottom: 18px; }
   .status.error { color: var(--danger); }
   .ai-badge { display: inline-block; background: var(--forest); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; margin-right: 6px; vertical-align: 1px; }
-
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 8px; }
   .helper { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
   .helper .top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
@@ -47,13 +35,26 @@
   .helper .meta { font-size: 12px; color: var(--muted); }
   .helper .svc { font-size: 13px; color: var(--forest); margin: 8px 0 4px; font-weight: 500; }
   .helper .rate { font-size: 14px; color: var(--ink); margin-bottom: 12px; white-space: pre-wrap; }
-  .helper a.request { display: block; text-align: center; width: 100%; background: var(--forest); color: white; padding: 10px; border-radius: 6px; font-weight: 600; font-size: 14px; text-decoration: none; }
-  .helper a.request:hover { background: var(--forest-dark); }
-
+  .helper button.request { display: block; width: 100%; background: var(--forest); color: white; padding: 10px; border-radius: 6px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; font-family: inherit; }
+  .helper button.request:hover { background: var(--forest-dark); }
   .empty { text-align: center; color: var(--muted); padding: 40px 20px; }
-
   footer { margin-top: 40px; text-align: center; color: var(--muted); font-size: 12px; }
   footer a { color: var(--forest); text-decoration: none; }
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(30,52,41,0.5); z-index: 100; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 20px; }
+  .modal-bg.show { display: flex; }
+  .modal { background: white; border-radius: 14px; max-width: 500px; width: 100%; padding: 28px; position: relative; margin: 20px auto; }
+  .modal-close { position: absolute; top: 10px; right: 14px; background: none; border: none; font-size: 28px; color: var(--muted); cursor: pointer; line-height: 1; }
+  .modal-head { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .modal-head .avatar { width: 48px; height: 48px; }
+  .modal-head h2 { font-size: 18px; color: var(--ink); margin: 0; }
+  .modal-head p { font-size: 13px; color: var(--muted); margin: 2px 0 0; }
+  .modal label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--ink); }
+  .modal input { width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--cream); }
+  .modal input:focus { outline: none; border-color: var(--forest); background: white; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .helper-note { background: var(--cream); padding: 10px 12px; border-radius: 6px; font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.5; }
+  .modal .submit { width: 100%; margin-top: 20px; background: var(--forest); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; }
+  .modal .success { background: #E8F0EA; color: var(--ok); padding: 14px; border-radius: 8px; margin-top: 16px; text-align: center; font-size: 14px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -63,31 +64,54 @@
     <h1>AI Search <span class="preview-badge">PREVIEW</span></h1>
     <a href="/">← Back to PipersList</a>
   </header>
-
   <p class="intro">Type what you need in plain English. Claude ranks helpers by best fit.</p>
-
   <form class="search-bar" onsubmit="doSearch(event)">
     <input id="q" type="text" placeholder='Try: "someone to walk my golden retriever Saturday afternoon"' autofocus>
     <button type="submit" id="btn">Search</button>
   </form>
-
   <div id="status" class="status"></div>
   <div id="grid" class="grid"></div>
-
   <footer>
     Preview page · API search via Netlify · Send feedback to <a href="mailto:admin@piperslist.org">admin@piperslist.org</a>
   </footer>
 </div>
 
+<div class="modal-bg" id="req-modal-bg" onclick="if(event.target===this) closeRequest()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeRequest()">×</button>
+    <div class="modal-head">
+      <div class="avatar" id="m-avatar">P</div>
+      <div>
+        <h2 id="m-name">Request</h2>
+        <p id="m-meta">—</p>
+      </div>
+    </div>
+    <form id="req-form" onsubmit="submitRequest(event)">
+      <label>What do you need?</label>
+      <input required placeholder="e.g. Walk my golden retriever for 30 min">
+      <div class="two-col">
+        <div><label>When?</label><input required placeholder="Tue 4pm"></div>
+        <div><label>Pay</label><input required placeholder="$15"></div>
+      </div>
+      <label>Your first name</label>
+      <input required placeholder="Mrs. Patel">
+      <label>Your phone</label>
+      <input type="tel" required placeholder="(913) 555-0123">
+      <div class="helper-note">
+        Their parent will be notified of the request. If they say yes, they'll text you to work out the details.
+      </div>
+      <button type="submit" class="submit">Send request</button>
+      <div id="req-success" class="success" style="display:none;">
+        ✓ Request sent! <span id="s-name"></span> will text you back soon.<br>
+        <span style="font-weight: 400; font-size: 13px;">Their parent has been notified too.</span>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // ===== Config — paste your Netlify function URL here =====
-  // After deploying the netlify/functions/search.js to Netlify,
-  // replace this with your function URL, e.g.:
-  // 'https://elegant-cobbler-abcd1234.netlify.app/.netlify/functions/search'
   const SEARCH_URL = 'https://deft-bublanina-cbf822.netlify.app/.netlify/functions/search';
-
-  // ===== Supabase setup (same publishable key as the main site) =====
   const SUPABASE_URL = 'https://brezapyroueqvznuiatb.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_5vwIdN4tIa-MwxUFM4xTog_1ka8Y27X';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -99,10 +123,7 @@
       .select('id,first_name,age,services,other_service,rate')
       .eq('approved', true)
       .order('created_at', { ascending: false });
-    if (error) {
-      setStatus('Could not load helpers: ' + error.message, true);
-      return;
-    }
+    if (error) { setStatus('Could not load helpers: ' + error.message, true); return; }
     _helpers = data || [];
   }
 
@@ -116,17 +137,10 @@
     if (e && e.preventDefault) e.preventDefault();
     const q = document.getElementById('q').value.trim();
     const btn = document.getElementById('btn');
-
     if (!q) { setStatus(''); document.getElementById('grid').innerHTML = ''; return; }
     if (!_helpers.length) { setStatus('No helpers loaded yet — try again in a sec.'); return; }
-    if (SEARCH_URL === 'PASTE_YOUR_NETLIFY_FUNCTION_URL_HERE') {
-      setStatus('SEARCH_URL not set yet — see the comment at top of the script.', true);
-      return;
-    }
-
     btn.disabled = true; btn.textContent = 'Thinking…';
     setStatus('<span class="ai-badge">AI</span> Searching with Claude Haiku…');
-
     try {
       const resp = await fetch(SEARCH_URL, {
         method: 'POST',
@@ -135,11 +149,7 @@
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || ('HTTP ' + resp.status));
-
-      const matches = Array.isArray(data.matches) ? data.matches : [];
-      const explanation = data.explanation || '';
-
-      renderResults(matches, explanation, q);
+      renderResults(Array.isArray(data.matches) ? data.matches : [], data.explanation || '', q);
     } catch (err) {
       console.error(err);
       setStatus('Search hit an error: ' + (err.message || err), true);
@@ -152,31 +162,23 @@
     const grid = document.getElementById('grid');
     const byId = new Map(_helpers.map(h => [h.id, h]));
     const ordered = ids.map(id => byId.get(id)).filter(Boolean);
-
     if (!ordered.length) {
       setStatus('<span class="ai-badge">AI</span> No good matches for "' + escapeHtml(q) + '". ' + escapeHtml(explanation));
       grid.innerHTML = '<div class="empty">Try different words, or browse all helpers at <a href="/">piperslist.org</a>.</div>';
       return;
     }
-
-    setStatus(
-      '<span class="ai-badge">AI</span> ' + ordered.length +
-      (ordered.length === 1 ? ' match' : ' matches') +
-      (explanation ? ' · ' + escapeHtml(explanation) : '')
-    );
-
+    setStatus('<span class="ai-badge">AI</span> ' + ordered.length + (ordered.length === 1 ? ' match' : ' matches') + (explanation ? ' · ' + escapeHtml(explanation) : ''));
     grid.innerHTML = ordered.map(h => {
       const initials = h.first_name.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2);
       const svcText = (h.services || []).join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
-      return `<div class="helper">
-        <div class="top"><div class="avatar">${escapeHtml(initials)}</div>
-          <div><div class="name">${escapeHtml(h.first_name)}, ${h.age}</div>
-          <div class="meta">★ Top match</div></div>
-        </div>
-        <div class="svc">${escapeHtml(svcText)}</div>
-        <div class="rate">${escapeHtml(h.rate || '')}</div>
-        <a class="request" href="/">Request on piperslist.org →</a>
-      </div>`;
+      return '<div class="helper">' +
+        '<div class="top"><div class="avatar">' + escapeHtml(initials) + '</div>' +
+          '<div><div class="name">' + escapeHtml(h.first_name) + ', ' + h.age + '</div>' +
+          '<div class="meta">★ Top match</div></div></div>' +
+        '<div class="svc">' + escapeHtml(svcText) + '</div>' +
+        '<div class="rate">' + escapeHtml(h.rate || '') + '</div>' +
+        '<button class="request" onclick="openRequest(\'' + h.id + '\')">Request ' + escapeHtml(h.first_name) + '</button>' +
+      '</div>';
     }).join('');
   }
 
@@ -184,6 +186,49 @@
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  let _currentHelperId = null;
+  function openRequest(helperId) {
+    const h = _helpers.find(x => x.id === helperId);
+    if (!h) return;
+    _currentHelperId = h.id;
+    const initials = h.first_name.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2);
+    const svcText = (h.services || []).join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
+    document.getElementById('m-name').textContent = 'Request ' + h.first_name.split(' ')[0];
+    document.getElementById('m-meta').textContent = svcText + ' · ' + (h.rate || '');
+    document.getElementById('m-avatar').textContent = initials;
+    document.getElementById('s-name').textContent = h.first_name.split(' ')[0];
+    document.getElementById('req-form').reset();
+    document.getElementById('req-success').style.display = 'none';
+    const btn = document.querySelector('#req-form .submit');
+    if (btn) btn.style.display = '';
+    document.getElementById('req-modal-bg').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeRequest() {
+    document.getElementById('req-modal-bg').classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  async function submitRequest(e) {
+    e.preventDefault();
+    const f = e.target;
+    const ins = f.querySelectorAll('input');
+    const reqData = {
+      what: ins[0].value,
+      when_text: ins[1].value,
+      pay: ins[2].value,
+      neighbor_name: ins[3].value,
+      neighbor_phone: ins[4].value
+    };
+    if (_currentHelperId) reqData.helper_id = _currentHelperId;
+    const { error } = await sb.from('requests').insert(reqData);
+    if (error) { alert('Error: ' + error.message); return; }
+    document.getElementById('req-success').style.display = 'block';
+    const btn = f.querySelector('.submit');
+    if (btn) btn.style.display = 'none';
   }
 
   loadHelpers();
