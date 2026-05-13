@@ -64,6 +64,7 @@
   .helper .svc { font-size: 13px; color: var(--forest); margin: 8px 0 4px; font-weight: 500; }
   .helper .price { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
   .helper .verified { font-size: 12px; color: var(--ok); font-weight: 600; margin-bottom: 12px; }
+  .helper .loc { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
   .helper button { width: 100%; background: var(--forest); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; font-family: inherit; }
   .helper button:hover { background: var(--forest-dark); }
 
@@ -191,6 +192,9 @@
       </div>
       <label>Your rate &amp; a note</label>
       <textarea required placeholder="$12 per walk · I have my own dog and love animals"></textarea>
+      <label>General area</label>
+      <input placeholder="e.g. near Blue Valley West High School — NOT your street address">
+      <div class="helper-note">Shows publicly on your listing. Neighborhood or zip only.</div>
       <label>Parent's email</label>
       <input type="email" required placeholder="parent@email.com">
       <button class="btn btn-primary" style="width:100%; margin-top:20px;">List me</button>
@@ -294,6 +298,9 @@
       <label>Pay</label>
       <input required placeholder="$25 flat, or $15/hr">
 
+      <label>General area</label>
+      <input placeholder="e.g. near Blue Valley West High School — NOT your street address">
+
       <label>Your name</label>
       <input required placeholder="Mr. Patel">
 
@@ -396,7 +403,7 @@
     // parent_email is private; edit_key is the secret that lets you delete a listing —
     // exposing all keys would let anyone via DevTools delete any helper.
     const { data, error } = await sb.from('helpers')
-      .select('id,first_name,age,services,other_service,rate')
+      .select('id,first_name,age,services,other_service,rate,location')
       .eq('approved', true)
       .order('created_at', { ascending: false });
     if (error) { console.error(error); return; }
@@ -418,9 +425,10 @@
     grid.innerHTML = list.map(h => {
       const initials = h.first_name.split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2);
       const svcText = h.services.join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
+      const locLine = h.location ? `<div class="loc">📍 ${escapeHtml(h.location)}</div>` : '';
       return `<div class="helper">
         <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${h.first_name}, ${h.age}</div><div class="meta">★ New helper</div></div></div>
-        <div class="svc">${svcText}</div><div class="price">${h.rate}</div><div class="verified">✓ Verified</div>
+        <div class="svc">${svcText}</div><div class="price">${h.rate}</div>${locLine}<div class="verified">✓ Verified</div>
         <button onclick="openModal('${h.first_name}','${svcText.replace(/'/g,"\\'")}','${h.rate}','${initials}','${h.id}')">Request ${h.first_name}</button>
       </div>`;
     }).join('');
@@ -447,7 +455,9 @@
     const { error: iErr } = await sb.from('helpers').insert({
       first_name: ins[0].value, age: parseInt(ins[1].value), services,
       other_service: otherChk.checked ? otherTxt : null,
-      rate: ins[8].value, parent_email: ins[9].value, approved: true
+      rate: ins[8].value,
+      location: ins[9].value.trim() || null,
+      parent_email: ins[10].value, approved: true
     });
     if (iErr) { alert('Save error: ' + iErr.message); return; }
     const s = document.getElementById('join-success');
@@ -505,7 +515,7 @@
     // Narrow select: NEVER pull poster email/phone into the browser. Replies go
     // through the job_responses table, which triggers a server-side email.
     const { data, error } = await sb.from('jobs')
-      .select('id,title,description,category,when_text,pay_text,neighbor_name,status,created_at')
+      .select('id,title,description,category,when_text,pay_text,location,neighbor_name,status,created_at')
       .eq('status', 'open')
       .order('created_at', { ascending: false });
     if (error) { grid.innerHTML = '<p style="text-align:center;color:#B5443A;padding:20px;grid-column:1/-1;">Could not load jobs: ' + escapeHtml(error.message) + '</p>'; return; }
@@ -523,11 +533,13 @@
     grid.innerHTML = _jobs.map((j, i) => {
       const cat = j.category ? `<span class="job-tag">${escapeHtml(j.category)}</span>` : '';
       const when = j.when_text ? `<div class="when">📅 ${escapeHtml(j.when_text)}</div>` : '';
+      const loc = j.location ? `<div class="when">📍 ${escapeHtml(j.location)}</div>` : '';
       const ago = timeAgo(j.created_at);
       return `<div class="helper job">
         <div class="helper-top"><div><div class="name">${escapeHtml(j.title)}</div><div class="meta">${cat}</div></div></div>
         <div class="desc">${escapeHtml(j.description)}</div>
         ${when}
+        ${loc}
         <div class="price">${escapeHtml(j.pay_text || '')}</div>
         <div class="posted">Posted by ${escapeHtml(j.neighbor_name || 'a neighbor')} · ${ago}</div>
         <button onclick="openReplyModal(${i})" style="margin-top: 12px;">I can help</button>
@@ -556,12 +568,13 @@
     const description = f.querySelector('textarea').value.trim();
     const category    = f.querySelector('select').value;
     const inputs      = f.querySelectorAll('input');
-    // Order: title, when, pay, name, email, phone
+    // Order: title, when, pay, location, name, email, phone
     const when_text = inputs[1].value.trim();
     const pay_text  = inputs[2].value.trim();
-    const neighbor_name  = inputs[3].value.trim();
-    const neighbor_email = inputs[4].value.trim();
-    const neighbor_phone = inputs[5].value.trim();
+    const location  = inputs[3].value.trim();
+    const neighbor_name  = inputs[4].value.trim();
+    const neighbor_email = inputs[5].value.trim();
+    const neighbor_phone = inputs[6].value.trim();
 
     if (!neighbor_email && !neighbor_phone) {
       alert('Please give an email OR a phone so kids can reach you.');
@@ -571,6 +584,7 @@
     // .select().single() returns the inserted row, including the auto-generated edit_key
     const { data: row, error } = await sb.from('jobs').insert({
       title, description, category, when_text, pay_text,
+      location: location || null,
       neighbor_name,
       neighbor_email: neighbor_email || null,
       neighbor_phone: neighbor_phone || null,

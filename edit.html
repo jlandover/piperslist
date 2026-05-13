@@ -58,6 +58,9 @@
     <label>Rate</label>
     <input id="f-rate" required placeholder="$12/walk">
 
+    <label>General area</label>
+    <input id="f-location" placeholder="e.g. near Blue Valley West High School">
+
     <label>Parent email</label>
     <input id="f-email" type="email" required>
 
@@ -92,6 +95,7 @@
     document.getElementById('c-tutor').checked = data.services.includes('Tutoring');
     document.getElementById('f-other').value = data.other_service || '';
     document.getElementById('f-rate').value = data.rate;
+    document.getElementById('f-location').value = data.location || '';
     document.getElementById('f-email').value = data.parent_email;
 
     document.getElementById('loading').style.display = 'none';
@@ -116,6 +120,7 @@
       services: services,
       other_service: document.getElementById('f-other').value || null,
       rate: document.getElementById('f-rate').value,
+      location: document.getElementById('f-location').value.trim() || null,
       parent_email: document.getElementById('f-email').value
     }).eq('edit_key', editKey);
 

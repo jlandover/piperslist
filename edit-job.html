@@ -65,6 +65,9 @@
     <label>Pay</label>
     <input id="f-pay">
 
+    <label>General area</label>
+    <input id="f-location" placeholder="e.g. near Blue Valley West High School">
+
     <label>Your name</label>
     <input id="f-name">
 
@@ -126,6 +129,7 @@
     document.getElementById('f-cat').value    = data.category || 'Other';
     document.getElementById('f-when').value   = data.when_text || '';
     document.getElementById('f-pay').value    = data.pay_text || '';
+    document.getElementById('f-location').value = data.location || '';
     document.getElementById('f-name').value   = data.neighbor_name || '';
     document.getElementById('f-email').value  = data.neighbor_email || '';
     document.getElementById('f-phone').value  = data.neighbor_phone || '';
@@ -149,6 +153,7 @@
       category:       document.getElementById('f-cat').value,
       when_text:      document.getElementById('f-when').value.trim(),
       pay_text:       document.getElementById('f-pay').value.trim(),
+      location:       document.getElementById('f-location').value.trim() || null,
       neighbor_name:  document.getElementById('f-name').value.trim(),
       neighbor_email: email || null,
       neighbor_phone: phone || null,
