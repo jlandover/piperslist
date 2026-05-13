@@ -47,7 +47,7 @@
 
   h2.section { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; text-align: center; margin-bottom: 24px; font-weight: 600; }
 
-  .cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+  .cats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 12px; }
   .cat { background: white; border: 1px solid var(--line); padding: 20px 14px; border-radius: 10px; text-align: center; cursor: pointer; transition: all 0.15s; }
   .cat:hover, .cat.active { border-color: var(--forest); background: white; transform: translateY(-2px); }
   .cat.active { background: var(--forest); color: white; }
@@ -161,6 +161,8 @@
       <div class="cat" onclick="filt('Babysitting', this)"><span class="emoji">👶</span><div class="name">Sitting</div></div>
       <div class="cat" onclick="filt('Dog walking', this)"><span class="emoji">🐕</span><div class="name">Dog walks</div></div>
       <div class="cat" onclick="filt('Yard help', this)"><span class="emoji">🌱</span><div class="name">Yard</div></div>
+      <div class="cat" onclick="filt('Tutoring', this)"><span class="emoji">📚</span><div class="name">Tutoring</div></div>
+      <div class="cat" onclick="filt('Other', this)"><span class="emoji">✨</span><div class="name">Other</div></div>
     </div>
     <div class="grid" id="grid"></div>
   </section>
@@ -174,7 +176,7 @@
       <label>First name</label>
       <input required placeholder="Ella">
       <label>Age</label>
-      <input type="number" required min="12" max="30" placeholder="14">
+      <input type="number" required min="12" max="30" placeholder="16">
       <label>What you offer</label>
       <div class="checks">
         <label><input type="checkbox"> Babysitting</label>
@@ -187,8 +189,8 @@
         <input placeholder="e.g. swim lessons, raking leaves, baking cookies, piano, car washing...">
         <div class="helper-note">Tell neighbors what you can do! The more specific, the better.</div>
       </div>
-      <label>Your rate</label>
-      <input required placeholder="$12 per walk, $14/hr sitting">
+      <label>Your rate &amp; a note</label>
+      <textarea required placeholder="$12 per walk · I have my own dog and love animals"></textarea>
       <label>Parent's email</label>
       <input type="email" required placeholder="parent@email.com">
       <button class="btn btn-primary" style="width:100%; margin-top:20px;">List me</button>
@@ -390,13 +392,27 @@
   // ===== Helpers from database =====
   let _helpers = [];
   async function loadHelpers() {
-    const { data, error } = await sb.from('helpers').select('*').eq('approved', true).order('created_at', { ascending: false });
+    // Narrow select: NEVER pull parent_email or edit_key into the browser.
+    // parent_email is private; edit_key is the secret that lets you delete a listing —
+    // exposing all keys would let anyone via DevTools delete any helper.
+    const { data, error } = await sb.from('helpers')
+      .select('id,first_name,age,services,other_service,rate')
+      .eq('approved', true)
+      .order('created_at', { ascending: false });
     if (error) { console.error(error); return; }
     _helpers = data || [];
     renderGrid();
   }
   function renderGrid(filter) {
-    const list = (!filter || filter === 'All') ? _helpers : _helpers.filter(h => h.services.includes(filter));
+    let list;
+    if (!filter || filter === 'All') {
+      list = _helpers;
+    } else if (filter === 'Other') {
+      // "Other" = anyone who filled in the "Something else" field at signup
+      list = _helpers.filter(h => h.other_service && h.other_service.trim().length > 0);
+    } else {
+      list = _helpers.filter(h => h.services && h.services.includes(filter));
+    }
     const grid = document.getElementById('grid');
     if (!list.length) { grid.innerHTML = '<p style="text-align:center;color:#666;padding:40px;grid-column:1/-1;">No helpers yet — be the first! Click "Offer help" above.</p>'; return; }
     grid.innerHTML = list.map(h => {
