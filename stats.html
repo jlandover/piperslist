@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stats — PipersList Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  :root { --forest: #2D4A3E; --forest-dark: #1E3429; --cream: #F7F3EA; --warm: #D4A574;
+          --ink: #1F2421; --muted: #6B7270; --line: #E4DFD2; --ok: #4A7C59; --danger: #B33A3A; }
+  body { background: var(--cream); color: var(--ink); padding: 20px; line-height: 1.55; }
+  .container { max-width: 980px; margin: 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 0; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+  header h1 { color: var(--forest); font-size: 22px; font-weight: 700; }
+  header .who { color: var(--muted); font-size: 13px; }
+  header button { background: none; border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+  header button:hover { color: var(--forest); border-color: var(--forest); }
+
+  .login-card, .denied-card { max-width: 420px; margin: 60px auto; background: white; border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
+  .login-card h2 { color: var(--forest); margin-bottom: 6px; }
+  .login-card .sub { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .login-card label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .login-card input { width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; background: var(--cream); }
+  .login-card input:focus { outline: none; border-color: var(--forest); background: white; }
+  .login-card button { width: 100%; margin-top: 14px; background: var(--forest); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+  .login-card button:hover { background: var(--forest-dark); }
+  .login-card button:disabled { background: #9aa6a1; cursor: not-allowed; }
+  .login-msg { margin-top: 14px; padding: 10px 12px; border-radius: 6px; font-size: 13px; display: none; }
+  .login-msg.ok { background: #E8F0EA; color: var(--ok); display: block; }
+  .login-msg.err { background: #fef0f0; color: var(--danger); display: block; }
+
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+  .stat { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .stat .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat .num { font-size: 28px; font-weight: 700; color: var(--ink); }
+  .stat .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  h2.section { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin: 28px 0 12px; font-weight: 600; }
+  .chart-card { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+  .chart-card canvas { width: 100% !important; height: 320px !important; }
+
+  .loading { text-align: center; padding: 40px; color: var(--muted); }
+  .error { background: #fef0f0; color: var(--danger); padding: 12px 14px; border-radius: 8px; margin: 16px 0; font-size: 14px; }
+
+  @media (max-width: 700px) { .summary { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div id="login-view" class="login-card" style="display:none;">
+  <h2>PipersList Stats</h2>
+  <p class="sub">Sign in with the admin email to view the dashboard.</p>
+  <label for="email">Email</label>
+  <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+  <button id="send-btn" onclick="sendMagicLink()">Send sign-in link</button>
+  <div id="login-msg" class="login-msg"></div>
+</div>
+
+<div id="denied-view" class="denied-card" style="display:none;">
+  <h2 style="color: var(--danger);">Access denied</h2>
+  <p class="sub" style="margin-top: 10px;">You're signed in as <b id="denied-email"></b>, but that email isn't on the admin allow-list. Edit ADMIN_EMAILS in this file to include it.</p>
+  <button onclick="signOut()" style="margin-top: 14px; background: white; color: var(--forest); border: 1px solid var(--line); padding: 10px; border-radius: 8px; width: 100%; cursor: pointer;">Sign out</button>
+</div>
+
+<div id="stats-view" style="display:none;">
+  <header>
+    <h1>PipersList Stats</h1>
+    <div>
+      <span class="who" id="who">—</span>
+      <button onclick="signOut()" style="margin-left: 10px;">Sign out</button>
+    </div>
+  </header>
+
+  <div class="summary">
+    <div class="stat"><div class="label">Helpers</div><div class="num" id="t-helpers">—</div><div class="sub" id="d-helpers"></div></div>
+    <div class="stat"><div class="label">Jobs</div><div class="num" id="t-jobs">—</div><div class="sub" id="d-jobs"></div></div>
+    <div class="stat"><div class="label">Requests</div><div class="num" id="t-requests">—</div><div class="sub" id="d-requests"></div></div>
+    <div class="stat"><div class="label">Job replies</div><div class="num" id="t-responses">—</div><div class="sub" id="d-responses"></div></div>
+  </div>
+
+  <h2 class="section">Cumulative growth</h2>
+  <div class="chart-card"><canvas id="cumulative-chart"></canvas></div>
+
+  <h2 class="section">Activity per day</h2>
+  <div class="chart-card"><canvas id="daily-chart"></canvas></div>
+
+  <div id="error-box"></div>
+</div>
+
+<div id="boot-loading" class="loading">Loading…</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  // ===== CONFIG =====
+  // Add any email that should have access to this dashboard.
+  // Magic-link auth via Supabase. Anyone not in this list gets "Access denied"
+  // even if they manage to sign in.
+  const ADMIN_EMAILS = ['jlandover@yahoo.com'];
+
+  const SUPABASE_URL = 'https://brezapyroueqvznuiatb.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_5vwIdN4tIa-MwxUFM4xTog_1ka8Y27X';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  function show(viewId) {
+    for (const id of ['login-view', 'denied-view', 'stats-view', 'boot-loading']) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = (id === viewId) ? 'block' : 'none';
+    }
+  }
+
+  function setLoginMsg(text, ok) {
+    const el = document.getElementById('login-msg');
+    el.textContent = text;
+    el.className = 'login-msg ' + (ok ? 'ok' : 'err');
+  }
+
+  async function sendMagicLink() {
+    const email = (document.getElementById('email').value || '').trim();
+    if (!email) { setLoginMsg('Enter your email.', false); return; }
+    const btn = document.getElementById('send-btn');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href }
+    });
+    btn.disabled = false; btn.textContent = 'Send sign-in link';
+    if (error) setLoginMsg('Error: ' + error.message, false);
+    else setLoginMsg('Check your inbox for the sign-in link.', true);
+  }
+
+  async function signOut() {
+    await sb.auth.signOut();
+    show('login-view');
+  }
+
+  // ===== Stats rendering =====
+  let _charts = { cumulative: null, daily: null };
+
+  async function loadStats() {
+    try {
+      const [helpersRes, jobsRes, requestsRes, responsesRes] = await Promise.all([
+        sb.from('helpers').select('created_at').order('created_at'),
+        sb.from('jobs').select('created_at').order('created_at'),
+        sb.from('requests').select('created_at').order('created_at'),
+        sb.from('job_responses').select('created_at').order('created_at')
+      ]);
+      for (const r of [helpersRes, jobsRes, requestsRes, responsesRes]) {
+        if (r.error) throw new Error(r.error.message);
+      }
+
+      const helpers   = helpersRes.data   || [];
+      const jobs      = jobsRes.data      || [];
+      const requests  = requestsRes.data  || [];
+      const responses = responsesRes.data || [];
+
+      // Totals + 7-day deltas
+      const last7 = (rows) => rows.filter(r => new Date(r.created_at) >= new Date(Date.now() - 7 * 86400 * 1000)).length;
+      setSummary('t-helpers',   'd-helpers',   helpers.length,   last7(helpers));
+      setSummary('t-jobs',      'd-jobs',      jobs.length,      last7(jobs));
+      setSummary('t-requests',  'd-requests',  requests.length,  last7(requests));
+      setSummary('t-responses', 'd-responses', responses.length, last7(responses));
+
+      // Build day-by-day series
+      const allDays = collectDays([helpers, jobs, requests, responses]);
+      const series = {
+        helpers:   cumulativeByDay(helpers,   allDays),
+        jobs:      cumulativeByDay(jobs,      allDays),
+        requests:  cumulativeByDay(requests,  allDays),
+        responses: cumulativeByDay(responses, allDays)
+      };
+      const dailySeries = {
+        helpers:   perDay(helpers,   allDays),
+        jobs:      perDay(jobs,      allDays),
+        requests:  perDay(requests,  allDays),
+        responses: perDay(responses, allDays)
+      };
+
+      renderCumulative(allDays, series);
+      renderDaily(allDays, dailySeries);
+    } catch (e) {
+      const box = document.getElementById('error-box');
+      box.innerHTML = '<div class="error">Could not load stats: ' + e.message + '</div>';
+    }
+  }
+
+  function setSummary(numId, subId, total, delta7) {
+    document.getElementById(numId).textContent = total;
+    document.getElementById(subId).textContent = (delta7 > 0 ? '+' : '') + delta7 + ' in last 7 days';
+  }
+
+  function dayKey(ts) { return new Date(ts).toISOString().slice(0, 10); }
+
+  function collectDays(allTables) {
+    const days = new Set();
+    let earliest = null;
+    for (const rows of allTables) {
+      for (const r of rows) {
+        const d = dayKey(r.created_at);
+        days.add(d);
+        if (!earliest || d < earliest) earliest = d;
+      }
+    }
+    if (!earliest) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    const result = [];
+    for (let d = new Date(earliest); dayKey(d) <= today; d.setDate(d.getDate() + 1)) {
+      result.push(dayKey(d));
+    }
+    return result;
+  }
+
+  function cumulativeByDay(rows, allDays) {
+    const counts = {};
+    for (const r of rows) {
+      const d = dayKey(r.created_at);
+      counts[d] = (counts[d] || 0) + 1;
+    }
+    let total = 0;
+    return allDays.map(d => { total += (counts[d] || 0); return total; });
+  }
+
+  function perDay(rows, allDays) {
+    const counts = {};
+    for (const r of rows) {
+      const d = dayKey(r.created_at);
+      counts[d] = (counts[d] || 0) + 1;
+    }
+    return allDays.map(d => counts[d] || 0);
+  }
+
+  function renderCumulative(labels, s) {
+    if (_charts.cumulative) _charts.cumulative.destroy();
+    _charts.cumulative = new Chart(document.getElementById('cumulative-chart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Helpers',   data: s.helpers,   borderColor: '#2D4A3E', backgroundColor: 'rgba(45,74,62,0.08)',   tension: 0.2, fill: false },
+          { label: 'Jobs',      data: s.jobs,      borderColor: '#D4A574', backgroundColor: 'rgba(212,165,116,0.1)',  tension: 0.2, fill: false },
+          { label: 'Requests',  data: s.requests,  borderColor: '#4A7C59', backgroundColor: 'rgba(74,124,89,0.1)',    tension: 0.2, fill: false },
+          { label: 'Job replies', data: s.responses, borderColor: '#B33A3A', backgroundColor: 'rgba(179,58,58,0.1)',  tension: 0.2, fill: false }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  function renderDaily(labels, s) {
+    if (_charts.daily) _charts.daily.destroy();
+    _charts.daily = new Chart(document.getElementById('daily-chart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Helpers',     data: s.helpers,   backgroundColor: '#2D4A3E' },
+          { label: 'Jobs',        data: s.jobs,      backgroundColor: '#D4A574' },
+          { label: 'Requests',    data: s.requests,  backgroundColor: '#4A7C59' },
+          { label: 'Job replies', data: s.responses, backgroundColor: '#B33A3A' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { x: { stacked: false }, y: { beginAtZero: true, ticks: { precision: 0 } } },
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  // ===== Auth flow / page bootstrap =====
+  async function bootstrap() {
+    const { data: { session } } = await sb.auth.getSession();
+    handleAuthState(session);
+  }
+
+  function handleAuthState(session) {
+    if (!session) { show('login-view'); return; }
+    const email = (session.user && session.user.email) || '';
+    if (!ADMIN_EMAILS.includes(email.toLowerCase())) {
+      document.getElementById('denied-email').textContent = email;
+      show('denied-view');
+      return;
+    }
+    document.getElementById('who').textContent = email;
+    show('stats-view');
+    loadStats();
+  }
+
+  sb.auth.onAuthStateChange((event, session) => handleAuthState(session));
+  bootstrap();
+</script>
+
+</body>
+</html>
