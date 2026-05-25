@@ -105,6 +105,19 @@
   .job .when { font-size: 13px; color: var(--muted); }
   .job .posted { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
+  /* AI smart search bar (Find Help page) */
+  .smart-search { max-width: 720px; margin: 0 auto 18px; }
+  .smart-search form { display: flex; gap: 8px; max-width: none; margin: 0; background: none; padding: 0; border: none; border-radius: 0; }
+  .smart-search input { flex: 1; padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; font-family: inherit; background: white; width: auto; }
+  .smart-search input:focus { outline: none; border-color: var(--forest); background: white; }
+  .smart-search button { padding: 14px 22px; background: var(--forest); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; }
+  .smart-search button:hover { background: var(--forest-dark); }
+  .smart-search button:disabled { background: #9aa6a1; cursor: not-allowed; }
+  .smart-status { min-height: 20px; font-size: 13px; color: var(--muted); margin: 8px 4px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .smart-status.error { color: #B33A3A; }
+  .smart-status .ai-badge { display: inline-block; background: var(--forest); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; }
+  .smart-status .clear-link { background: none; border: none; color: var(--forest); text-decoration: underline; font-size: 13px; cursor: pointer; padding: 0; font-family: inherit; margin-left: auto; }
+
   @media (max-width: 600px) {
     .hero h1 { font-size: 32px; }
     .cats { grid-template-columns: repeat(2, 1fr); }
@@ -155,7 +168,14 @@
   <section id="browse" class="page">
     <div class="hero" style="padding-bottom: 20px;">
       <h1 style="font-size: 32px;">Find a helper</h1>
-      <p>Tap a category to filter.</p>
+      <p>Search in plain English, or tap a category.</p>
+    </div>
+    <div class="smart-search">
+      <form onsubmit="aiSearch(event)">
+        <input id="ai-q" type="text" placeholder='Try: "someone to walk my golden retriever Saturday afternoon"'>
+        <button type="submit" id="ai-btn">Search</button>
+      </form>
+      <div id="ai-status" class="smart-status"></div>
     </div>
     <div class="cats">
       <div class="cat active" onclick="filt('All', this)"><span class="emoji">🏡</span><div class="name">All</div></div>
@@ -434,9 +454,90 @@
     }).join('');
   }
   function filt(cat, el) {
+    // Tapping a chip exits AI search mode and resumes normal browsing.
+    if (_aiMode) {
+      _aiMode = false;
+      const q = document.getElementById('ai-q');
+      if (q) q.value = '';
+      setSearchStatus('');
+    }
     document.querySelectorAll('.cat').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
     renderGrid(cat);
+  }
+
+  // ===== AI smart search (helpers only — first iteration) =====
+  const SEARCH_URL = 'https://deft-bublanina-cbf822.netlify.app/.netlify/functions/search';
+  let _aiMode = false;
+
+  async function aiSearch(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const q = document.getElementById('ai-q').value.trim();
+    const btn = document.getElementById('ai-btn');
+    if (!q) { clearSearch(); return; }
+    if (!_helpers.length) { setSearchStatus('No helpers loaded yet — try again in a sec.'); return; }
+    btn.disabled = true; btn.textContent = 'Thinking…';
+    setSearchStatus('<span class="ai-badge">AI</span> Searching with Claude…');
+    try {
+      const resp = await fetch(SEARCH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q, helpers: _helpers })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || ('HTTP ' + resp.status));
+      renderAiResults(Array.isArray(data.matches) ? data.matches : [], data.explanation || '', q);
+    } catch (err) {
+      console.error(err);
+      setSearchStatus('Search hit an error: ' + (err.message || err), true);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Search';
+    }
+  }
+
+  function renderAiResults(ids, explanation, q) {
+    _aiMode = true;
+    document.querySelectorAll('.cat').forEach(c => c.classList.remove('active'));
+    const byId = new Map(_helpers.map(h => [h.id, h]));
+    const ordered = ids.map(id => byId.get(id)).filter(Boolean);
+    const grid = document.getElementById('grid');
+    const count = ordered.length;
+    const summary = '<span class="ai-badge">AI</span> ' + (count
+      ? count + (count === 1 ? ' match' : ' matches') + (explanation ? ' · ' + escapeHtml(explanation) : '')
+      : 'No good matches for "' + escapeHtml(q) + '"' + (explanation ? ' · ' + escapeHtml(explanation) : ''));
+    setSearchStatus(summary + ' <button type="button" class="clear-link" onclick="clearSearch()">Clear search</button>');
+    if (!count) {
+      grid.innerHTML = '<p style="text-align:center;color:#666;padding:40px;grid-column:1/-1;">No helpers matched. Try different words, or tap a category above.</p>';
+      return;
+    }
+    grid.innerHTML = ordered.map(h => {
+      const initials = h.first_name.split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2);
+      const svcText = h.services.join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
+      const locLine = h.location ? `<div class="loc">📍 ${escapeHtml(h.location)}</div>` : '';
+      return `<div class="helper">
+        <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${h.first_name}, ${h.age}</div><div class="meta">★ Top match</div></div></div>
+        <div class="svc">${svcText}</div><div class="price">${h.rate}</div>${locLine}<div class="verified">✓ Verified</div>
+        <button onclick="openModal('${h.first_name}','${svcText.replace(/'/g,"\\'")}','${h.rate}','${initials}','${h.id}')">Request ${h.first_name}</button>
+      </div>`;
+    }).join('');
+  }
+
+  function clearSearch() {
+    _aiMode = false;
+    const q = document.getElementById('ai-q');
+    if (q) q.value = '';
+    setSearchStatus('');
+    document.querySelectorAll('.cat').forEach(c => c.classList.remove('active'));
+    const allChip = document.querySelector('.cat'); // first chip is "All"
+    if (allChip) allChip.classList.add('active');
+    renderGrid('All');
+  }
+
+  function setSearchStatus(html, isError) {
+    const el = document.getElementById('ai-status');
+    if (!el) return;
+    el.classList.toggle('error', !!isError);
+    el.innerHTML = html;
   }
 
   // ===== Signup (no auth, instant approval) =====
