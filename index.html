@@ -446,10 +446,11 @@
       const initials = h.first_name.split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2);
       const svcText = h.services.join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
       const locLine = h.location ? `<div class="loc">📍 ${escapeHtml(h.location)}</div>` : '';
+      const nameEsc = escapeHtml(h.first_name);
       return `<div class="helper">
-        <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${h.first_name}, ${h.age}</div><div class="meta">★ New helper</div></div></div>
-        <div class="svc">${svcText}</div><div class="price">${h.rate}</div>${locLine}<div class="verified">✓ Verified</div>
-        <button onclick="openModal('${h.first_name}','${svcText.replace(/'/g,"\\'")}','${h.rate}','${initials}','${h.id}')">Request ${h.first_name}</button>
+        <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${nameEsc}, ${h.age}</div><div class="meta">★ New helper</div></div></div>
+        <div class="svc">${escapeHtml(svcText)}</div><div class="price">${escapeHtml(h.rate || '')}</div>${locLine}<div class="verified">✓ Verified</div>
+        <button class="request-btn" data-helper-id="${h.id}">Request ${nameEsc}</button>
       </div>`;
     }).join('');
   }
@@ -514,10 +515,11 @@
       const initials = h.first_name.split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2);
       const svcText = h.services.join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
       const locLine = h.location ? `<div class="loc">📍 ${escapeHtml(h.location)}</div>` : '';
+      const nameEsc = escapeHtml(h.first_name);
       return `<div class="helper">
-        <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${h.first_name}, ${h.age}</div><div class="meta">★ Top match</div></div></div>
-        <div class="svc">${svcText}</div><div class="price">${h.rate}</div>${locLine}<div class="verified">✓ Verified</div>
-        <button onclick="openModal('${h.first_name}','${svcText.replace(/'/g,"\\'")}','${h.rate}','${initials}','${h.id}')">Request ${h.first_name}</button>
+        <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${nameEsc}, ${h.age}</div><div class="meta">★ Top match</div></div></div>
+        <div class="svc">${escapeHtml(svcText)}</div><div class="price">${escapeHtml(h.rate || '')}</div>${locLine}<div class="verified">✓ Verified</div>
+        <button class="request-btn" data-helper-id="${h.id}">Request ${nameEsc}</button>
       </div>`;
     }).join('');
   }
@@ -539,6 +541,23 @@
     el.classList.toggle('error', !!isError);
     el.innerHTML = html;
   }
+
+  // ===== Helper Request — delegated click handler =====
+  // Why: building onclick="openModal('${name}','${rate}',…)" by string interpolation
+  // breaks for any helper whose name/rate/services text contains a single quote
+  // (e.g. "I'm flexible"). Switching to data-helper-id + a single delegated
+  // handler removes the whole class of quoting bug.
+  function openHelperRequest(helperId) {
+    const h = _helpers.find(x => x.id === helperId);
+    if (!h) return;
+    const initials = h.first_name.split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2);
+    const svcText = h.services.join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
+    openModal(h.first_name, svcText, h.rate || '', initials, h.id);
+  }
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest && e.target.closest('.request-btn');
+    if (btn && btn.dataset.helperId) openHelperRequest(btn.dataset.helperId);
+  });
 
   // ===== Signup (no auth, instant approval) =====
   async function submitJoin(e) {
