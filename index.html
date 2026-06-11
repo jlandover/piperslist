@@ -196,7 +196,7 @@
     <form onsubmit="submitJoin(event)">
       <label>First name</label>
       <input required placeholder="Ella">
-      <label>Age</label>
+      <label>Age <span class="optional-tag">(use 30 if you're 30 or older)</span></label>
       <input type="number" required min="12" max="30" placeholder="16">
       <label>What you offer</label>
       <div class="checks">
@@ -225,7 +225,7 @@
   <section id="jobs" class="page">
     <div class="hero" style="padding-bottom: 20px;">
       <h1 style="font-size: 32px;">Help wanted</h1>
-      <p>Need a hand with something? Post it here. Local kids will see it.</p>
+      <p>Need a hand with something? Post it here. Local helpers will see it.</p>
       <div class="cta-row" style="margin-top: 20px;">
         <button class="btn btn-primary" onclick="openPostJob()">Post a job</button>
       </div>
@@ -287,7 +287,7 @@
     <div class="modal-head">
       <div>
         <h2>Post a job</h2>
-        <p>Local kids will see this on the Help Wanted page.</p>
+        <p>Local helpers will see this on the Help Wanted page.</p>
       </div>
     </div>
     <form onsubmit="submitJob(event)" id="job-form">
@@ -295,7 +295,7 @@
       <input required maxlength="80" placeholder="e.g. Mow front yard this Saturday">
 
       <label>Details</label>
-      <textarea required placeholder="What needs doing? Any tools provided? Pets? Anything kids should know?"></textarea>
+      <textarea required placeholder="What needs doing? Any tools provided? Pets? Anything helpers should know?"></textarea>
 
       <div class="two-col">
         <div>
@@ -341,7 +341,7 @@
 
       <button class="btn btn-primary" style="width:100%; margin-top:20px;">Post the job</button>
       <div id="job-success" style="display:none;" class="success" style="text-align:left;">
-        <div style="font-size: 15px; margin-bottom: 10px;">✓ Posted! Local kids can see your job now.</div>
+        <div style="font-size: 15px; margin-bottom: 10px;">✓ Posted! Local helpers can see your job now.</div>
         <div id="email-sent-note" style="font-size: 13px; font-weight: 400; color: var(--muted); margin-bottom: 12px; display: none;">📧 We've emailed you a copy of the link below.</div>
         <div style="font-weight: 600; color: var(--ink); margin-top: 8px;">Save this link to edit or delete your post:</div>
         <div style="display:flex; gap:8px; margin-top:8px;">
@@ -397,7 +397,7 @@
   </div>
 </div>
 
-<footer>Piperslist · Built by a neighborhood kid · Parents always notified</footer>
+<footer>Piperslist · Built by a neighborhood kid · Parents always notified · <a href="/play.html" style="color: var(--forest); text-decoration: none;">🎮 Play Flip Season</a></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -423,7 +423,7 @@
     // parent_email is private; edit_key is the secret that lets you delete a listing —
     // exposing all keys would let anyone via DevTools delete any helper.
     const { data, error } = await sb.from('helpers')
-      .select('id,first_name,age,services,other_service,rate,location')
+      .select('id,first_name,age,services,other_service,rate,location,created_at')
       .eq('approved', true)
       .order('created_at', { ascending: false });
     if (error) { console.error(error); return; }
@@ -442,14 +442,18 @@
     }
     const grid = document.getElementById('grid');
     if (!list.length) { grid.innerHTML = '<p style="text-align:center;color:#666;padding:40px;grid-column:1/-1;">No helpers yet — be the first! Click "Offer help" above.</p>'; return; }
+    const NEW_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // "New helper" = listed within last 7 days
     grid.innerHTML = list.map(h => {
       const initials = h.first_name.split(' ').map(s=>s[0]).join('').toUpperCase().slice(0,2);
       const svcText = h.services.join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
       const locLine = h.location ? `<div class="loc">📍 ${escapeHtml(h.location)}</div>` : '';
       const nameEsc = escapeHtml(h.first_name);
+      const isNew = h.created_at && (Date.now() - new Date(h.created_at).getTime()) < NEW_WINDOW_MS;
+      const metaLine = isNew ? '<div class="meta">★ New helper</div>' : '';
+      const ageDisplay = h.age >= 30 ? '30+' : h.age;
       return `<div class="helper">
-        <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${nameEsc}, ${h.age}</div><div class="meta">★ New helper</div></div></div>
-        <div class="svc">${escapeHtml(svcText)}</div><div class="price">${escapeHtml(h.rate || '')}</div>${locLine}<div class="verified">✓ Verified</div>
+        <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${nameEsc}, ${ageDisplay}</div>${metaLine}</div></div>
+        <div class="svc">${escapeHtml(svcText)}</div><div class="price">${escapeHtml(h.rate || '')}</div>${locLine}
         <button class="request-btn" data-helper-id="${h.id}">Request ${nameEsc}</button>
       </div>`;
     }).join('');
@@ -516,9 +520,10 @@
       const svcText = h.services.join(' · ') + (h.other_service ? ' · ' + h.other_service : '');
       const locLine = h.location ? `<div class="loc">📍 ${escapeHtml(h.location)}</div>` : '';
       const nameEsc = escapeHtml(h.first_name);
+      const ageDisplay = h.age >= 30 ? '30+' : h.age;
       return `<div class="helper">
-        <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${nameEsc}, ${h.age}</div><div class="meta">★ Top match</div></div></div>
-        <div class="svc">${escapeHtml(svcText)}</div><div class="price">${escapeHtml(h.rate || '')}</div>${locLine}<div class="verified">✓ Verified</div>
+        <div class="helper-top"><div class="avatar">${initials}</div><div><div class="name">${nameEsc}, ${ageDisplay}</div><div class="meta">★ Top match</div></div></div>
+        <div class="svc">${escapeHtml(svcText)}</div><div class="price">${escapeHtml(h.rate || '')}</div>${locLine}
         <button class="request-btn" data-helper-id="${h.id}">Request ${nameEsc}</button>
       </div>`;
     }).join('');
@@ -697,7 +702,7 @@
     const neighbor_phone = inputs[6].value.trim();
 
     if (!neighbor_email && !neighbor_phone) {
-      alert('Please give an email OR a phone so kids can reach you.');
+      alert('Please give an email OR a phone so helpers can reach you.');
       return;
     }
 

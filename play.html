@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piper's List — Flip Season</title>
+<style>
+  :root{
+    --bg:#0c0e14; --panel:#14171f; --panel2:#1b1f2a; --edge:#2a2f3d;
+    --txt:#e8ecf4; --dim:#8b93a7; --accent:#b6f24a; --accent2:#ffd24a;
+    --good:#5fe08a; --bad:#ff6b6b; --info:#5bb8ff; --warn:#ffa53d;
+    --ui:'Inter','Segoe UI',Roboto,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    background:radial-gradient(900px 500px at 85% -10%, #1a2030 0%, transparent 60%),
+               radial-gradient(800px 500px at 5% 110%, #161c2a 0%, transparent 55%), var(--bg);
+    color:var(--txt); font-family:var(--ui);
+    display:flex; align-items:center; justify-content:center; min-height:100%; padding:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{width:100%; max-width:940px; background:linear-gradient(180deg,var(--panel),#0e1118);
+    border:1px solid var(--edge); border-radius:18px; overflow:hidden;
+    box-shadow:0 30px 80px rgba(0,0,0,.55);}
+  header{display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; border-bottom:1px solid var(--edge); background:rgba(255,255,255,.02)}
+  .logo{font-weight:800; font-size:21px; letter-spacing:-.5px; display:flex; align-items:center; gap:9px}
+  .logo .mark{width:30px;height:30px;border-radius:9px;background:var(--accent);color:#0c0e14;
+    display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900}
+  .logo small{display:block;font-size:10px;font-weight:600;color:var(--dim);letter-spacing:.3px}
+  .topbtns{display:flex;gap:8px}
+  .stat-strip{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;background:rgba(0,0,0,.22);border-bottom:1px solid var(--edge)}
+  .chip{background:var(--panel2);border:1px solid var(--edge);border-radius:11px;padding:7px 12px;min-width:90px}
+  .chip .k{color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:.8px;font-weight:700;display:block}
+  .chip .v{font-size:16px;font-weight:800}
+  .v.cash{color:var(--accent)} .v.debt{color:var(--bad)} .v.stash{color:var(--good)}
+  main{padding:16px 18px 6px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .col{flex:1;min-width:282px}
+  h2{font-size:11px;letter-spacing:1.4px;color:var(--dim);text-transform:uppercase;font-weight:800;
+     margin:4px 0 8px;padding-bottom:7px;border-bottom:1px solid var(--edge)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{color:var(--dim);font-weight:700;text-align:right;font-size:9px;letter-spacing:.6px;padding:4px 6px;text-transform:uppercase}
+  th:first-child{text-align:left}
+  td{padding:7px 6px;text-align:right;border-top:1px solid rgba(255,255,255,.05)}
+  td:first-child{text-align:left}
+  tr.market-row{cursor:pointer;transition:background .1s;border-radius:8px}
+  tr.market-row:hover{background:rgba(182,242,74,.07)}
+  tr.market-row.sel{background:rgba(182,242,74,.14);outline:1px solid var(--accent)}
+  .tag{font-size:9px;padding:2px 6px;border-radius:6px;margin-left:6px;font-weight:800;vertical-align:middle}
+  .tag.hot{background:rgba(95,224,138,.16);color:var(--good);border:1px solid var(--good)}
+  .tag.crash{background:rgba(255,107,107,.16);color:var(--bad);border:1px solid var(--bad)}
+  .btn{font-family:var(--ui);font-weight:700;cursor:pointer;border:1px solid var(--edge);
+    background:var(--panel2);color:var(--txt);border-radius:10px;padding:9px 14px;font-size:12.5px;
+    letter-spacing:.3px;transition:.12s}
+  .btn:hover:not(:disabled){border-color:var(--accent);transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .btn.primary{background:var(--accent);color:#0c0e14;border-color:var(--accent)}
+  .btn.sell{background:var(--good);color:#0c1a10;border-color:var(--good)}
+  .btn.warn{background:var(--warn);color:#241400;border-color:var(--warn)}
+  .btn.ghost{background:transparent}
+  .actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+  .nav-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:6px}
+  .nav-btn{display:flex;justify-content:space-between;align-items:center;text-align:left}
+  .nav-btn small{color:var(--dim);font-size:10px;font-weight:600}
+  #log{background:#0a0c12;border:1px solid var(--edge);border-radius:12px;margin:6px 18px 14px;
+    padding:11px 13px;height:92px;overflow-y:auto;font-size:12.5px;line-height:1.55}
+  #log .e{margin:2px 0;color:var(--dim)}
+  #log .e b{color:var(--txt)}
+  #log .e.good b{color:var(--good)} #log .e.bad b{color:var(--bad)} #log .e.note b{color:var(--accent)}
+  .hbar{height:6px;background:#0a0c12;border:1px solid var(--edge);border-radius:4px;overflow:hidden;margin-top:5px}
+  .hbar>i{display:block;height:100%;transition:width .3s;background:var(--accent)}
+  .overlay{position:fixed;inset:0;background:rgba(6,8,14,.85);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .overlay.hidden{display:none}
+  .modal{background:linear-gradient(180deg,var(--panel2),#10131c);border:1px solid var(--accent);
+    border-radius:16px;max-width:470px;width:100%;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.7);
+    animation:pop .16s ease-out}
+  @keyframes pop{from{transform:scale(.93);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal h3{margin:0 0 8px;font-size:18px;font-weight:800;letter-spacing:-.3px;color:var(--accent)}
+  .modal p{font-size:13px;line-height:1.6;color:var(--txt)}
+  .modal .sub{color:var(--dim);font-size:12px}
+  .qty-row{display:flex;gap:8px;align-items:center;margin:14px 0}
+  .qty-row input{flex:1;background:#0a0c12;border:1px solid var(--edge);color:#fff;font-family:var(--ui);
+    font-weight:700;font-size:16px;padding:9px;border-radius:10px;text-align:center}
+  .modal-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+  .center{text-align:center}
+  .big{font-size:38px;font-weight:900;letter-spacing:-1px}
+  .hint{font-size:11px;color:var(--dim);margin-top:3px}
+  .ico{width:24px;height:24px;vertical-align:middle;margin-right:9px}
+  .cap-av{vertical-align:middle;margin-right:7px;border-radius:9px}
+  .bully{display:flex;gap:13px;align-items:center;padding:11px;margin:8px 0 13px;border-radius:11px;
+    border:1px solid rgba(255,107,107,.55);background:rgba(60,12,12,.4)}
+  .bully .name{font-weight:800;color:#ff9d9d} .bully .name small{display:block;color:var(--dim);font-weight:600}
+  .modal.wide{max-width:760px}
+  .char-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:14px 0}
+  .char-card{background:var(--panel);border:1px solid var(--edge);border-radius:13px;padding:13px;
+    cursor:pointer;transition:.12s;display:flex;gap:12px;align-items:flex-start}
+  .char-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .char-card h4{margin:0 0 2px;font-size:15px;font-weight:800;color:#fff}
+  .char-card .role{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.7px;font-weight:800}
+  .char-card .perk{font-size:11.5px;color:var(--dim);line-height:1.45;margin-top:6px}
+  @media(max-width:560px){.chip{min-width:70px;flex:1}.stat-strip{gap:6px}.char-grid{grid-template-columns:1fr}}
+  /* Leaderboard add-ons */
+  .lb-strap{display:flex;justify-content:center;gap:14px;font-size:11px;color:var(--dim);margin:-4px 0 12px;text-align:center;letter-spacing:.4px}
+  .lb-strap b{color:var(--accent)}
+  .lb-list{margin:10px 0 14px;padding:10px 12px;background:var(--panel2);border:1px solid var(--edge);border-radius:10px;font-size:13px}
+  .lb-row{display:flex;justify-content:space-between;padding:5px 4px;border-top:1px solid rgba(255,255,255,.05)}
+  .lb-row:first-child{border-top:none}
+  .lb-row .rk{color:var(--dim);font-weight:700;min-width:24px;text-align:center}
+  .lb-row .nm{flex:1;color:var(--txt);font-weight:600;padding:0 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lb-row .sc{color:var(--accent);font-weight:800;font-variant-numeric:tabular-nums}
+  .lb-row.you{background:rgba(182,242,74,.1);border-radius:6px}
+  .lb-row.you .rk{color:var(--accent2)}
+  .name-row{display:flex;gap:8px;align-items:center;margin:14px 0 8px}
+  .name-row input{flex:1;padding:9px 11px;background:var(--panel2);border:1px solid var(--edge);border-radius:8px;color:var(--txt);font-family:var(--ui);font-weight:600;font-size:13.5px}
+  .name-row input:focus{outline:none;border-color:var(--accent)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo"><span class="mark">P</span><span>Piper's List<small>flip season · buy low, sell high</small></span></div>
+    <div class="topbtns">
+      <button class="btn ghost" id="helpBtn">How to play</button>
+      <button class="btn ghost" id="newBtn">New game</button>
+    </div>
+  </header>
+
+  <div class="stat-strip">
+    <div class="chip" style="min-width:140px"><span class="k">Hustler</span><span class="v" id="s-cap" style="font-size:13px">—</span></div>
+    <div class="chip"><span class="k">Spot</span><span class="v" id="s-loc" style="font-size:13px">—</span></div>
+    <div class="chip"><span class="k">Day</span><span class="v" id="s-day">—</span></div>
+    <div class="chip"><span class="k">Cash</span><span class="v cash" id="s-cash">—</span></div>
+    <div class="chip"><span class="k">Stash</span><span class="v stash" id="s-stash">—</span></div>
+    <div class="chip"><span class="k">Owe</span><span class="v debt" id="s-debt">—</span></div>
+    <div class="chip"><span class="k">Bag</span><span class="v" id="s-bag">—</span></div>
+  </div>
+
+  <main>
+    <div class="row">
+      <div class="col">
+        <h2>Listings · <span id="market-loc"></span></h2>
+        <table>
+          <thead><tr><th>Item</th><th>Price</th><th>Have</th><th></th></tr></thead>
+          <tbody id="market"></tbody>
+        </table>
+        <div class="hint">Tap an item to select it, then Buy or Sell. Prices shift every day and every spot.</div>
+        <div class="actions">
+          <button class="btn primary" id="buyBtn" disabled>Buy</button>
+          <button class="btn sell" id="sellBtn" disabled>Sell</button>
+        </div>
+      </div>
+      <div class="col">
+        <h2>Travel</h2>
+        <div class="hint">Heading to a new spot burns a day and refreshes every listing.</div>
+        <div class="nav-grid" id="nav"></div>
+        <h2 style="margin-top:16px">Around town</h2>
+        <div class="actions">
+          <button class="btn" id="stashBtn">Stash</button>
+          <button class="btn warn" id="loanBtn">Repay loan</button>
+          <button class="btn" id="shopBtn">Gear shop</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div id="log"></div>
+</div>
+
+<div class="overlay hidden" id="overlay"><div class="modal" id="modal"></div></div>
+
+<script>
+/* ===================== PIPER'S LIST — FLIP SEASON ===================== */
+/* ---- Easy to customize: swap these names for your real local spots ---- */
+const SPOTS = [
+  {name:"Parkville",       blurb:"Riverfront college town. Chill flips.", risk:0.8},
+  {name:"Lee's Summit",    blurb:"Booming suburb, money to spend.",       risk:0.9},
+  {name:"Blue Valley",     blurb:"JoCo money — they pay top dollar.",     risk:0.9},
+  {name:"Olathe",          blurb:"Sprawling suburb, deals everywhere.",   risk:1.0},
+  {name:"Shawnee Mission", blurb:"Classic KC suburbia, steady demand.",   risk:1.0},
+  {name:"Kansas City",     blurb:"Downtown energy. Pricey — stay sharp.", risk:1.3},
+];
+const GOODS = [
+  {name:"Vintage tees",   min:8,    max:55},
+  {name:"Textbooks",      min:15,   max:140},
+  {name:"Hoodies",        min:20,   max:110},
+  {name:"Earbuds",        min:25,   max:200},
+  {name:"Sneakers",       min:45,   max:360},
+  {name:"Game console",   min:90,   max:560},
+  {name:"Concert tickets",min:60,   max:680},
+  {name:"Phone",          min:120,  max:850},
+];
+const ICONS={
+ "Vintage tees":`<svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M8 3l-4 3 2 3 2-1v10h8V8l2 1 2-3-4-3-2 2-2 2-2-2z" fill="#5bb8ff" stroke="#cfe3ff" stroke-width="1"/></svg>`,
+ "Textbooks":`<svg class="ico" viewBox="0 0 24 24" fill="none"><rect x="5" y="4" width="14" height="16" rx="1.5" fill="#ffa53d" stroke="#fff" stroke-width="1"/><path d="M9 4v16" stroke="#fff" stroke-width="1"/><path d="M12 8h4M12 11h4" stroke="#241400" stroke-width="1"/></svg>`,
+ "Hoodies":`<svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M8 4c0 2 8 2 8 0l3 4-2 2v8H7v-8l-2-2z" fill="#b6f24a" stroke="#0c0e14" stroke-width=".8"/><path d="M10 4c0 2 4 2 4 0" stroke="#0c0e14" stroke-width="1" fill="none"/></svg>`,
+ "Earbuds":`<svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M8 4v8a3 3 0 1 1-3 3" stroke="#e8ecf4" stroke-width="1.6" fill="none"/><path d="M16 4v8a3 3 0 1 0 3 3" stroke="#e8ecf4" stroke-width="1.6" fill="none"/><circle cx="5" cy="15" r="2.5" fill="#fff"/><circle cx="19" cy="15" r="2.5" fill="#fff"/></svg>`,
+ "Sneakers":`<svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M3 16c2 0 4-1 6-3l3 1 9 2v2H3z" fill="#fff" stroke="#5bb8ff" stroke-width="1"/><path d="M9 13l2 2M11 12l2 2" stroke="#5bb8ff" stroke-width="1"/></svg>`,
+ "Game console":`<svg class="ico" viewBox="0 0 24 24" fill="none"><rect x="3" y="8" width="18" height="9" rx="4.5" fill="#7a5cff" stroke="#fff" stroke-width="1"/><circle cx="7.5" cy="12.5" r="1.3" fill="#fff"/><circle cx="16.5" cy="11.5" r="1.1" fill="#ff6b6b"/><circle cx="18.5" cy="13.5" r="1.1" fill="#5fe08a"/></svg>`,
+ "Concert tickets":`<svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z" fill="#ff6bd0" stroke="#fff" stroke-width="1"/><path d="M14 7v10" stroke="#fff" stroke-width="1" stroke-dasharray="2 2"/></svg>`,
+ "Phone":`<svg class="ico" viewBox="0 0 24 24" fill="none"><rect x="7" y="3" width="10" height="18" rx="2.5" fill="#1b1f2a" stroke="#b6f24a" stroke-width="1.2"/><rect x="9" y="6" width="6" height="9" fill="#5bb8ff"/><circle cx="12" cy="18" r="1" fill="#fff"/></svg>`,
+};
+const HUSTLERS=[
+  {name:"Riley", role:"The Thrifter",
+   perk:"Roomy duffel (14 slots) and an eye for deals — finds free or cheap items more often.",
+   mods:{bag:14, dealBonus:true}},
+  {name:"Devon", role:"The Sneakerhead",
+   perk:"Comes in flush with $500 startup cash to move on big-ticket flips fast.",
+   mods:{cash:500}},
+  {name:"Sam", role:"The Smooth Talker",
+   perk:"Bullies rarely bother you, and you can talk your way out of almost anything.",
+   mods:{talk:0.3, bullyMod:0.4}},
+  {name:"Max", role:"The Hustler",
+   perk:"Started small — only owes $150, so the loan barely weighs you down.",
+   mods:{debt:150}},
+];
+function portrait(i,s){
+  const inner=[
+    `<rect width="48" height="48" rx="11" fill="#16321f"/><circle cx="24" cy="20" r="9" fill="#e6b98f"/>
+     <path d="M8 46c2-11 30-11 32 0z" fill="#b6f24a"/><path d="M15 16a9 9 0 0 1 18 0l-3 2-6-3-6 3z" fill="#5b3a22"/>`,
+    `<rect width="48" height="48" rx="11" fill="#16233a"/><circle cx="24" cy="20" r="9" fill="#caa078"/>
+     <path d="M8 46c2-11 30-11 32 0z" fill="#5bb8ff"/><path d="M13 14h22l-2 5H15z" fill="#0c0e14"/><rect x="13" y="13" width="22" height="3" rx="1.5" fill="#ff6b6b"/>`,
+    `<rect width="48" height="48" rx="11" fill="#2a1f3a"/><circle cx="24" cy="20" r="9" fill="#8a5a3c"/>
+     <path d="M8 46c2-11 30-11 32 0z" fill="#ffd24a"/><path d="M15 17c1-5 17-5 18 0" stroke="#1a1020" stroke-width="2" fill="none"/><circle cx="20" cy="20" r="1.5" fill="#1a1020"/><circle cx="28" cy="20" r="1.5" fill="#1a1020"/>`,
+    `<rect width="48" height="48" rx="11" fill="#3a2016"/><circle cx="24" cy="20" r="9" fill="#d9a06a"/>
+     <path d="M8 46c2-11 30-11 32 0z" fill="#ff8a4a"/><path d="M14 15l10-4 10 4-10 3z" fill="#1a0f08"/><rect x="22" y="11" width="4" height="2" fill="#ffd24a"/>`,
+  ][i];
+  return `<svg class="cap-av" width="${s}" height="${s}" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+}
+const MAX_DAYS=30;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rand(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const fmt=n=>"$"+Math.round(n).toLocaleString();
+
+let G;
+
+/* ===================== LEADERBOARD ===================== */
+const SUPA_URL = 'https://brezapyroueqvznuiatb.supabase.co';
+const SUPA_KEY = 'sb_publishable_5vwIdN4tIa-MwxUFM4xTog_1ka8Y27X';
+const supa = window.supabase ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
+let _lastSubmittedId = null; // remember which row is "you" in the board
+
+async function bumpPlays(){
+  if (!supa) return;
+  try { await supa.rpc('increment_plays'); } catch (_) {}
+}
+async function getPlays(){
+  if (!supa) return 0;
+  try {
+    const { data } = await supa.from('piperslist_stats')
+      .select('plays').eq('id','global').single();
+    return data ? data.plays : 0;
+  } catch (_) { return 0; }
+}
+async function submitScore(name, score, hustler){
+  if (!supa) return null;
+  try {
+    const clean = (name || 'Anon').toString().trim().slice(0,20) || 'Anon';
+    const { data } = await supa.from('piperslist_scores')
+      .insert({ name: clean, score: Math.round(score), hustler })
+      .select('id').single();
+    _lastSubmittedId = data ? data.id : null;
+    return _lastSubmittedId;
+  } catch (_) { return null; }
+}
+async function topScores(n){
+  if (!supa) return [];
+  try {
+    const { data } = await supa.from('piperslist_scores')
+      .select('id,name,score,hustler')
+      .order('score', { ascending: false })
+      .limit(n || 10);
+    return data || [];
+  } catch (_) { return []; }
+}
+
+function newGame(ci){
+  if(ci===undefined)ci=0;
+  const c=HUSTLERS[ci], m=c.mods;
+  G={
+    char:ci, charName:c.name, role:c.role,
+    loc:0, day:1,
+    cash:(m.cash??350), stash:0, debt:(m.debt??300),
+    stashRate:0.012, debtRate:0.03,
+    bag:(m.bag??10),
+    talk:(m.talk??0), escape:0, bullyMod:(m.bullyMod??1), dealBonus:(m.dealBonus??false),
+    inv:Object.fromEntries(GOODS.map(g=>[g.name,0])),
+    avg:Object.fromEntries(GOODS.map(g=>[g.name,0])),
+    prices:{}, special:{}, sel:null, over:false,
+  };
+  rollMarket(true);
+  document.getElementById('log').innerHTML='';
+  log(`<b>${c.name}</b> — ${c.role}. ${c.perk}`,'note');
+  log(`You owe a friend <b>${fmt(G.debt)}</b> (grows a little each day). Flip your way up over ${MAX_DAYS} days.`);
+  render();
+  bumpPlays(); // global play counter — fire and forget
+}
+function bagUsed(){return GOODS.reduce((s,g)=>s+G.inv[g.name],0);}
+
+function rollMarket(first){
+  G.prices={}; G.special={};
+  GOODS.forEach(g=>{
+    let p=rand(g.min,g.max);
+    p*=(0.9+(G.loc/SPOTS.length)*0.3);
+    const r=Math.random();
+    if(!first && r<0.08){ p=g.max*rand(1.3,2.0); G.special[g.name]='hot'; }
+    else if(!first && r>0.92){ p=g.min*rand(0.4,0.7); G.special[g.name]='crash'; }
+    G.prices[g.name]=Math.max(1,Math.round(p));
+  });
+}
+
+function render(){
+  const st=SPOTS[G.loc];
+  document.getElementById('s-cap').innerHTML=portrait(G.char,20)+G.charName;
+  document.getElementById('s-loc').textContent=st.name;
+  document.getElementById('s-day').textContent=G.day+" / "+MAX_DAYS;
+  document.getElementById('s-cash').textContent=fmt(G.cash);
+  document.getElementById('s-stash').textContent=fmt(G.stash);
+  document.getElementById('s-debt').textContent=fmt(G.debt);
+  document.getElementById('s-bag').textContent=bagUsed()+"/"+G.bag;
+  document.getElementById('market-loc').textContent=st.name;
+
+  const mk=document.getElementById('market'); mk.innerHTML='';
+  GOODS.forEach(g=>{
+    const price=G.prices[g.name], have=G.inv[g.name], sp=G.special[g.name];
+    const tr=document.createElement('tr');
+    tr.className='market-row'+(G.sel===g.name?' sel':'');
+    let tag=''; if(sp==='hot')tag=' <span class="tag hot">in demand</span>';
+    if(sp==='crash')tag=' <span class="tag crash">flooded</span>';
+    tr.innerHTML=`<td>${ICONS[g.name]||''}${g.name}${tag}</td>
+      <td>${fmt(price)}</td>
+      <td>${have||'·'}</td>
+      <td>${have?`<span class="hint">paid ${fmt(G.avg[g.name])}</span>`:''}</td>`;
+    tr.onclick=()=>{G.sel=g.name;render();};
+    mk.appendChild(tr);
+  });
+
+  const nav=document.getElementById('nav'); nav.innerHTML='';
+  SPOTS.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.className='btn nav-btn'+(i===G.loc?' ghost':'');
+    b.disabled=(i===G.loc);
+    b.innerHTML=`<span>${i===G.loc?'● ':''}${s.name}</span><small>${i===G.loc?'here':'go'}</small>`;
+    b.onclick=()=>travel(i);
+    nav.appendChild(b);
+  });
+  document.getElementById('buyBtn').disabled=!G.sel||G.over;
+  document.getElementById('sellBtn').disabled=!G.sel||!G.inv[G.sel]||G.over;
+}
+function log(html,cls=''){
+  const l=document.getElementById('log');
+  const d=document.createElement('div'); d.className='e '+cls; d.innerHTML='› '+html;
+  l.insertBefore(d,l.firstChild);
+}
+
+function openTrade(mode){
+  const g=G.sel; if(!g)return;
+  const price=G.prices[g];
+  const maxBuy=Math.min(Math.floor(G.cash/price), G.bag-bagUsed());
+  const maxSell=G.inv[g];
+  const max=mode==='buy'?maxBuy:maxSell;
+  const m=document.getElementById('modal');
+  m.innerHTML=`
+    <h3>${ICONS[g]||''}${mode==='buy'?'Buy':'Sell'} · ${g}</h3>
+    <p class="sub">Price <b style="color:var(--accent2)">${fmt(price)}</b> each ·
+      ${mode==='buy'?`you can grab <b>${max}</b>`:`you hold <b>${max}</b> (paid ${fmt(G.avg[g])})`}</p>
+    <div class="qty-row">
+      <button class="btn" id="qMin">Min</button>
+      <input id="qty" type="number" min="0" max="${max}" value="${max>0?max:0}">
+      <button class="btn" id="qMax">Max</button>
+    </div>
+    <p class="sub" id="qInfo"></p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="qCancel">Cancel</button>
+      <button class="btn ${mode==='buy'?'primary':'sell'}" id="qGo">${mode==='buy'?'Confirm buy':'Confirm sell'}</button>
+    </div>`;
+  show();
+  const q=document.getElementById('qty');
+  const info=()=>{
+    let v=Math.max(0,Math.min(max,parseInt(q.value)||0));
+    document.getElementById('qInfo').innerHTML= mode==='buy'
+      ? `Total cost: <b style="color:var(--bad)">${fmt(v*price)}</b>`
+      : `You get: <b style="color:var(--good)">${fmt(v*price)}</b> · profit: <b style="color:${(price-G.avg[g])>=0?'var(--good)':'var(--bad)'}">${(price-G.avg[g])>=0?'+':''}${fmt(v*(price-G.avg[g]))}</b>`;
+  };
+  q.oninput=info; info();
+  document.getElementById('qMin').onclick=()=>{q.value=0;info();};
+  document.getElementById('qMax').onclick=()=>{q.value=max;info();};
+  document.getElementById('qCancel').onclick=hide;
+  document.getElementById('qGo').onclick=()=>{
+    let v=Math.max(0,Math.min(max,parseInt(q.value)||0));
+    if(v<=0){hide();return;}
+    if(mode==='buy'){
+      const cost=v*price, prevQty=G.inv[g], prevCost=prevQty*G.avg[g];
+      G.inv[g]+=v; G.cash-=cost; G.avg[g]=Math.round((prevCost+cost)/G.inv[g]);
+      log(`Bought <b>${v}× ${g}</b> for ${fmt(cost)}.`);
+    }else{
+      const earn=v*price, pl=v*(price-G.avg[g]);
+      G.inv[g]-=v; G.cash+=earn; if(G.inv[g]===0)G.avg[g]=0;
+      log(`Sold <b>${v}× ${g}</b> for ${fmt(earn)} (${pl>=0?'+':''}${fmt(pl)}).`, pl>=0?'good':'bad');
+    }
+    hide(); render();
+  };
+}
+
+function travel(dest){
+  if(G.over)return;
+  G.loc=dest; G.day++;
+  if(G.debt>0)G.debt=Math.round(G.debt*(1+G.debtRate));
+  if(G.stash>0)G.stash=Math.round(G.stash*(1+G.stashRate));
+  G.sel=null;
+  rollMarket(false);
+  log(`Headed to <b>${SPOTS[dest].name}</b>. ${SPOTS[dest].blurb}`,'note');
+  render();
+  if(G.day>MAX_DAYS){endGame();return;}
+  maybeEvent();
+}
+function maybeEvent(){
+  const r=Math.random(), risk=SPOTS[G.loc].risk;
+  if(r < 0.16*risk*G.bullyMod && bagUsed()>0){ return bullyEvent(); }
+  if(r < 0.28){ return rumor(); }
+  if(r < (G.dealBonus?0.50:0.38)){ return foundDeal(); }
+  if(r < (G.dealBonus?0.56:0.45)){ return lostCash(); }
+}
+
+function bullyEvent(){
+  const m=document.getElementById('modal');
+  m.innerHTML=`
+    <h3 style="color:var(--bad)">Trouble!</h3>
+    <div class="bully">
+      <svg width="58" height="58" viewBox="0 0 48 48"><rect width="48" height="48" rx="11" fill="#3a1414"/>
+        <circle cx="24" cy="19" r="9" fill="#caa078"/><path d="M8 46c2-12 30-12 32 0z" fill="#5a2020"/>
+        <path d="M16 16h16" stroke="#1a0a0a" stroke-width="3"/><circle cx="20" cy="20" r="1.5" fill="#1a0a0a"/><circle cx="28" cy="20" r="1.5" fill="#1a0a0a"/></svg>
+      <div class="name">Trey the Block Boss<small>eyeing your bag at ${SPOTS[G.loc].name}</small></div>
+    </div>
+    <p class="sub">He wants a cut. Pick your move:</p>
+    <div class="modal-actions" style="flex-direction:column">
+      <button class="btn warn" id="bBolt" style="width:100%;text-align:left">Bolt — sprint for it</button>
+      <button class="btn" id="bTalk" style="width:100%;text-align:left">Talk it out — play it cool</button>
+      <button class="btn primary" id="bPay" style="width:100%;text-align:left">Pay him off — ${fmt(payoff())}</button>
+    </div>`;
+  show();
+  document.getElementById('bBolt').onclick=()=>{
+    if(Math.random() < (0.5+G.escape)){ hide(); log(`You <b>juked him</b> and got clean away.`,'good'); render(); }
+    else { loseItem(); }
+  };
+  document.getElementById('bTalk').onclick=()=>{
+    if(Math.random() < (0.45+G.talk)){ hide(); log(`Smooth. <b>Talked him down</b> — no harm done.`,'good'); render(); }
+    else { const loss=Math.round(G.cash*rand(0.05,0.12)); G.cash=Math.max(0,G.cash-loss); hide(); log(`He wasn't buying it — slipped <b>${fmt(loss)}</b> to keep the peace.`,'bad'); render(); }
+  };
+  document.getElementById('bPay').onclick=()=>{
+    const c=payoff(); if(G.cash<c){flashInfo("Not enough cash to pay him.");return;}
+    G.cash-=c; hide(); log(`Paid Trey <b>${fmt(c)}</b>. He lets you pass.`,'note'); render();
+  };
+}
+function payoff(){return Math.round(G.cash*0.12)+25;}
+function loseItem(){
+  const held=GOODS.filter(g=>G.inv[g.name]>0);
+  if(!held.length){ hide(); log(`He grabbed for your bag but it was empty!`,'note'); render(); return; }
+  const g=pick(held).name, qty=Math.min(G.inv[g], ri(1,2));
+  G.inv[g]-=qty; if(G.inv[g]===0)G.avg[g]=0;
+  hide(); log(`Caught you — Trey swiped <b>${qty}× ${g}</b>.`,'bad'); render();
+}
+function rumor(){
+  const g=pick(GOODS).name, up=Math.random()<0.5;
+  log(`Word is <b>${g}</b> ${up?'are blowing up — prices climbing':'are everywhere right now — prices dropping'}.`,'note');
+}
+function foundDeal(){
+  const g=pick(GOODS), qty=ri(1,4), space=G.bag-bagUsed(), take=Math.min(qty,space);
+  if(take<=0){ log(`Spotted a free pile of ${g.name}, but your bag's full.`); return; }
+  const prevQty=G.inv[g.name], prevCost=prevQty*G.avg[g.name];
+  G.inv[g.name]+=take; G.avg[g.name]=Math.round(prevCost/G.inv[g.name]);
+  log(`Score! Snagged <b>${take}× ${g.name}</b> from a free pile.`,'good'); render();
+}
+function lostCash(){
+  if(G.cash<40)return;
+  const loss=Math.round(G.cash*rand(0.04,0.14));
+  G.cash-=loss; log(`Ugh — a bad Venmo charge cost you <b>${fmt(loss)}</b>.`,'bad'); render();
+}
+
+function openStash(){
+  const m=document.getElementById('modal');
+  m.innerHTML=`
+    <h3>Stash</h3>
+    <p class="sub">Money you stash is safe from bullies and bad luck, and grows <b>${(G.stashRate*100).toFixed(1)}%</b> a day.<br>
+       On you: <b style="color:var(--accent2)">${fmt(G.cash)}</b> · Stashed: <b style="color:var(--good)">${fmt(G.stash)}</b></p>
+    <div class="qty-row"><input id="amt" type="number" min="0" value="${G.cash}"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="cl">Close</button>
+      <button class="btn sell" id="wd">Take out</button>
+      <button class="btn primary" id="dp">Stash it</button>
+    </div>`;
+  show();
+  const a=()=>Math.max(0,parseInt(document.getElementById('amt').value)||0);
+  document.getElementById('cl').onclick=hide;
+  document.getElementById('dp').onclick=()=>{const v=Math.min(a(),G.cash);if(v<=0)return;G.cash-=v;G.stash+=v;log(`Stashed ${fmt(v)}.`);hide();render();};
+  document.getElementById('wd').onclick=()=>{const v=Math.min(a(),G.stash);if(v<=0)return;G.stash-=v;G.cash+=v;log(`Took out ${fmt(v)}.`);hide();render();};
+}
+function openLoan(){
+  const m=document.getElementById('modal');
+  m.innerHTML=`
+    <h3 style="color:var(--bad)">Repay loan</h3>
+    <p class="sub">Your loan grows <b>${(G.debtRate*100)|0}%</b> a day. Clear it before it snowballs.<br>
+       Owe: <b style="color:var(--bad)">${fmt(G.debt)}</b> · On you: <b style="color:var(--accent2)">${fmt(G.cash)}</b></p>
+    <div class="qty-row"><input id="amt" type="number" min="0" value="${Math.min(G.cash,G.debt)}"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="cl">Close</button>
+      <button class="btn warn" id="bw">Borrow $200</button>
+      <button class="btn primary" id="pay">Pay back</button>
+    </div>`;
+  show();
+  const a=()=>Math.max(0,parseInt(document.getElementById('amt').value)||0);
+  document.getElementById('cl').onclick=hide;
+  document.getElementById('pay').onclick=()=>{const v=Math.min(a(),G.cash,G.debt);if(v<=0)return;G.cash-=v;G.debt-=v;log(`Paid back ${fmt(v)}.`,G.debt===0?'good':'');if(G.debt===0)log(`<b>Loan cleared!</b> All yours now.`,'good');hide();render();};
+  document.getElementById('bw').onclick=()=>{G.cash+=200;G.debt+=200;log(`Borrowed another ${fmt(200)}. Watch it.`,'bad');hide();render();};
+}
+function openShop(){
+  const bagCost=Math.round(60*Math.pow(G.bag/10,1.5));
+  const kicksCost=Math.round(220*Math.pow((G.escape/0.12)+1,1.4));
+  const m=document.getElementById('modal');
+  m.innerHTML=`
+    <h3>Gear shop</h3>
+    <p class="sub">On you: <b style="color:var(--accent2)">${fmt(G.cash)}</b></p>
+    <p>Bag size: <b>${G.bag} slots</b> &nbsp;
+       <button class="btn primary" id="gBag">+4 for ${fmt(bagCost)}</button></p>
+    <p>Fresh kicks: <b>+${Math.round(G.escape*100)}% getaway</b> &nbsp;
+       <button class="btn sell" id="gKicks">Upgrade for ${fmt(kicksCost)}</button></p>
+    <div class="modal-actions"><button class="btn ghost" id="cl">Close</button></div>`;
+  show();
+  document.getElementById('cl').onclick=hide;
+  document.getElementById('gBag').onclick=()=>{if(G.cash<bagCost){flashInfo("Can't afford it.");return;}G.cash-=bagCost;G.bag+=4;log(`Bag upgraded to <b>${G.bag} slots</b>.`,'good');openShop();render();};
+  document.getElementById('gKicks').onclick=()=>{if(G.cash<kicksCost){flashInfo("Can't afford it.");return;}G.cash-=kicksCost;G.escape=Math.min(0.4,G.escape+0.12);log(`Fresh kicks — you're faster now.`,'good');openShop();render();};
+}
+function flashInfo(t){let e=document.getElementById('flashLine');if(!e){e=document.createElement('p');e.id='flashLine';e.className='sub';e.style.color='var(--bad)';document.getElementById('modal').appendChild(e);}e.textContent=t;}
+
+function invValue(){return GOODS.reduce((s,g)=>s+G.inv[g.name]*G.prices[g.name],0);}
+function endGame(){
+  G.over=true;
+  const net=G.cash+G.stash-G.debt+invValue();
+  let rank="In the red";
+  if(net>50000)rank="Certified Mogul";
+  else if(net>20000)rank="Big-Time Flipper";
+  else if(net>8000)rank="Come-Up King/Queen";
+  else if(net>3000)rank="Solid Hustler";
+  else if(net>0)rank="Broke but Trying";
+  const m=document.getElementById('modal');
+  // Stage 1: results + name entry
+  m.innerHTML=`
+    <div class="center">
+      <h3>Season's over</h3>
+      <p class="sub">30 days done. Time to count it up.</p>
+      <p class="sub">Cash ${fmt(G.cash)} · Stash ${fmt(G.stash)} · Bag ≈${fmt(invValue())} · Owe ${fmt(G.debt)}</p>
+      <div class="big" style="color:${net>=0?'var(--good)':'var(--bad)'}">${fmt(net)}</div>
+      <p>Net worth · Rank: <b style="color:var(--accent2)">${rank}</b></p>
+    </div>
+    <div class="name-row">
+      <input id="lbName" maxlength="20" placeholder="Your name for the leaderboard" value="${escapeHtml(G.charName)}">
+      <button class="btn primary" id="lbSave">Submit</button>
+    </div>
+    <p class="sub" id="lbHint" style="text-align:center;font-size:11px">Skip and just play again →</p>
+    <div class="modal-actions" style="justify-content:center">
+      <button class="btn ghost" id="again">Play again</button>
+    </div>`;
+  show();
+  const showBoard = async (justSubmitted) => {
+    const rows = await topScores(10);
+    const list = rows.length
+      ? rows.map((r,i) => {
+          const me = justSubmitted && r.id === _lastSubmittedId;
+          return `<div class="lb-row${me?' you':''}"><span class="rk">${i+1}</span><span class="nm">${escapeHtml(r.name)}${r.hustler?' · <span style="color:var(--dim);font-weight:400">'+escapeHtml(r.hustler)+'</span>':''}</span><span class="sc">${fmt(r.score)}</span></div>`;
+        }).join('')
+      : '<div class="lb-row"><span class="nm" style="text-align:center;color:var(--dim)">Be the first to post a score</span></div>';
+    m.innerHTML = `
+      <div class="center">
+        <h3>Top Hustlers</h3>
+        <p class="sub">Your run: <b style="color:${net>=0?'var(--good)':'var(--bad)'}">${fmt(net)}</b> · Rank: <b style="color:var(--accent2)">${rank}</b></p>
+      </div>
+      <div class="lb-list">${list}</div>
+      <div class="modal-actions" style="justify-content:center">
+        <button class="btn primary" id="again2">Play again</button>
+      </div>`;
+    document.getElementById('again2').onclick = () => { hide(); showCharSelect(); };
+  };
+  document.getElementById('lbSave').onclick = async () => {
+    const btn = document.getElementById('lbSave');
+    const nameInput = document.getElementById('lbName');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    await submitScore(nameInput.value, net, G.role);
+    await showBoard(true);
+  };
+  document.getElementById('again').onclick = () => { hide(); showCharSelect(); };
+}
+
+function escapeHtml(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function openHelp(){
+  const m=document.getElementById('modal');
+  m.innerHTML=`
+    <h3>How to play</h3>
+    <p style="font-size:12.5px;line-height:1.65">
+    You're a student flipping resale finds to stack cash over <b>${MAX_DAYS} days</b>. A friend fronted you a loan that grows daily.
+    <br><br>
+    • <b>Buy low, sell high.</b> Tap an item, then Buy or Sell. Prices change every day and every spot — chase <span class="tag hot">in demand</span> spikes and grab <span class="tag crash">flooded</span> dips.<br>
+    • <b>Travel</b> uses a day and may trigger run-ins: Trey the bully (if you're holding items) might try to swipe your stuff — bolt, talk, or pay him off.<br>
+    • <b>Stash</b> cash to keep it safe and earn a little daily.<br>
+    • <b>Repay</b> the loan before it snowballs.<br>
+    • <b>Gear shop:</b> bigger bag, faster getaway.<br><br>
+    Goal: highest <b>net worth</b> when the season ends.</p>
+    <div class="modal-actions"><button class="btn primary" id="hc">Got it</button></div>`;
+  show();
+  document.getElementById('hc').onclick=hide;
+}
+
+async function showCharSelect(){
+  const m=document.getElementById('modal');
+  m.classList.add('wide');
+  m.innerHTML=`
+    <h3>Pick your hustler</h3>
+    <p class="sub">Each one starts with a different edge. Choose to start the season.</p>
+    <div class="lb-strap" id="lb-strap">Loading leaderboard…</div>
+    <div class="char-grid">
+      ${HUSTLERS.map((c,i)=>`
+        <div class="char-card" data-i="${i}">
+          <div>${portrait(i,54)}</div>
+          <div><h4>${c.name}</h4><div class="role">${c.role}</div><div class="perk">${c.perk}</div></div>
+        </div>`).join('')}
+    </div>`;
+  show();
+  m.querySelectorAll('.char-card').forEach(el=>{ el.onclick=()=>{ hide(); newGame(+el.dataset.i); }; });
+  // Hydrate the strap with global play count + current leader (async, doesn't block selection)
+  try {
+    const [plays, top] = await Promise.all([getPlays(), topScores(1)]);
+    const strap = document.getElementById('lb-strap');
+    if (!strap) return;
+    const leader = top[0]
+      ? `<span>Top: <b>${escapeHtml(top[0].name)}</b> · ${fmt(top[0].score)}</span>`
+      : '<span>No scores yet — be the first!</span>';
+    strap.innerHTML = `<span><b>${plays.toLocaleString()}</b> seasons played</span> ${leader}`;
+  } catch (_) {
+    const strap = document.getElementById('lb-strap');
+    if (strap) strap.textContent = '';
+  }
+}
+
+function show(){document.getElementById('overlay').classList.remove('hidden');}
+function hide(){document.getElementById('overlay').classList.add('hidden');document.getElementById('modal').classList.remove('wide');}
+document.getElementById('buyBtn').onclick=()=>openTrade('buy');
+document.getElementById('sellBtn').onclick=()=>openTrade('sell');
+document.getElementById('stashBtn').onclick=openStash;
+document.getElementById('loanBtn').onclick=openLoan;
+document.getElementById('shopBtn').onclick=openShop;
+document.getElementById('helpBtn').onclick=openHelp;
+document.getElementById('newBtn').onclick=()=>{if(confirm('Start a new game? Current run will be lost.'))showCharSelect();};
+document.getElementById('overlay').onclick=e=>{if(e.target.id==='overlay' && typeof G!=='undefined' && G){hide();}};
+
+showCharSelect();
+</script>
+</body>
+</html>
